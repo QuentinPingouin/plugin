@@ -1,0 +1,49 @@
+{
+  "name": "test back 2",
+  "id": "1300016938541757923",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": ["figma", "figjam"],
+  "menu":[
+    {
+      "name": "Color",
+      "command": "color",
+      "parameters": [
+          {
+            "name": "Color",
+            "key": "color",
+            "description": "choose your color (variable)"
+          },
+          {
+            "name": "Mode",
+            "key": "mode",
+            "description": "Choose your mode",
+            "allowFreeform": true,
+            "optional": true
+          }
+        ]
+    },
+    {
+        "name": "Stroke Color",
+        "command": "stroke_color",
+        "parameters": [
+          {
+            "name": "Stroke Color",
+            "key": "stroke_color",
+            "description": "choose your color (variable)"
+          },
+          {
+            "name": "Mode",
+            "key": "mode",
+            "description": "Choose your mode",
+            "allowFreeform": true,
+            "optional": true
+          }
+        ]
+    }
+  ],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  },
+  "permissions": ["teamlibrary"]
+}
