@@ -11,11 +11,30 @@
   "menu":[
     {
       "name": "Color",
-      "command": "color"
+      "command": "color",
+      "parameters": [
+          {
+            "name": "Color",
+            "key": "color",
+            "description": "Choose your color (variable)"
+          }
+        ]
     },
     {
         "name": "Stroke Color",
-        "command": "stroke_color"
+        "command": "stroke_color",
+        "parameters": [
+          {
+            "name": "Color",
+            "key": "stroke_color",
+            "description": "Choose your color (variable)"
+          },
+          {
+            "name": "Width",
+            "key": "stroke_width",
+            "description": "Choose your size"
+          }
+        ]
     }
   ],
   "networkAccess": {
