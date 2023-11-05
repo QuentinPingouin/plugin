@@ -8,6 +8,16 @@
   "editorType": [
     "figma"
   ],
+  "menu":[
+    {
+      "name": "Color",
+      "command": "color"
+    },
+    {
+        "name": "Stroke Color",
+        "command": "stroke_color"
+    }
+  ],
   "networkAccess": {
     "allowedDomains": [
       "none"
