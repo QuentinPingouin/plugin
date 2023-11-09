@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "watch",
+			"path": "assign variables",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "npm: watch - assign variables",
+			"detail": "npm run build -- --watch"
+		}
+	]
+}

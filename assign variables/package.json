@@ -1,7 +1,7 @@
 {
   "name": "Assign-variables",
   "version": "1.0.0",
-  "description": "Your Figma Plugin",
+  "description": "Assign variables to... all you want",
   "main": "code.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -12,5 +12,8 @@
   "devDependencies": {
     "@figma/plugin-typings": "^1.80.0",
     "typescript": "*"
+  },
+  "dependencies": {
+    "buffer": "^6.0.3"
   }
 }

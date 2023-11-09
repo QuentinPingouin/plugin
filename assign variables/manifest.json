@@ -21,8 +21,8 @@
         ]
     },
     {
-        "name": "Stroke Color",
-        "command": "stroke_color",
+        "name": "Stroke",
+        "command": "stroke",
         "parameters": [
           {
             "name": "Color",
@@ -32,7 +32,8 @@
           {
             "name": "Width",
             "key": "stroke_width",
-            "description": "Choose your size"
+            "description": "Choose your size",
+            "optional": true
           }
         ]
     }
