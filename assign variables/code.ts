@@ -94,82 +94,25 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
 
     case 'height':
     case 'width':
-      
-      // let getCollectionNumber = figma.variables.getLocalVariableCollections();
-      // let collectionLengthNumber = getCollectionNumber.length;
-      
-      // let numberVariableCount = figma.variables.getLocalVariables('FLOAT').length;
-      // let collectionCount = 0;
-
-      // //Collection Loop
-      // // for (let collectionCount = 0; collectionCount < collectionLengthNumber; collectionCount++) {
-      // getCollectionNumber.forEach(element => {
-      //   let collection = getCollectionNumber[collectionCount];
-      //   let variableIdsCount = 0;
-      //   let scopeWidthHeight= false;
-      //   // console.log(element.name);
-        
-
-      //   //Variables Loop
-      //   numberVariable.forEach(element => {
-      //     let variableIdsString = collection.variableIds[variableIdsCount];
-      //     let variableObjet = figma.variables.getVariableById(`${variableIdsString}`);
-      //     let scopeCounter = 0;
-          // console.log(element.scopes)
-          // console.log(element)
-          // if(element.scopes.includes(chaineRecherchee))
-
-          // element.scopes.forEach(element => {
-          //   console.log(element);
-            
-            
-          // });
-
-          // variableObjet?.scopes.forEach(element => {
-            
-          //   if(element == 'WIDTH_HEIGHT'){
-          //     if(variableObjet?.resolvedType == 'FLOAT' && variableObjet?.valuesByMode) {                
-          //         let firstModeValue = variableObjet?.valuesByMode[Object.keys(variableObjet?.valuesByMode)[0]] as Number;
-          //         heightArray.push(firstModeValue + 'px  (' + collection?.name + ')');
-          //     }
-          //     scopeCounter++;
-          //     scopeWidthHeight = true;
-          //   } 
-          // });
-          // console.log(heightArray)
-
-          // if(scopeWidthHeight) {
-          //   // console.log('la longueur du tableau est 0');
-            
-          //   if(variableObjet?.resolvedType == 'FLOAT' && variableObjet?.valuesByMode) {
-          //       let firstModeValue = variableObjet?.valuesByMode[Object.keys(variableObjet?.valuesByMode)[0]] as Number;
-          //       heightArray.push(firstModeValue + 'px  (' + collection?.name + ')');
-          //   }
-          // }
-      //     variableIdsCount++;
-      //   });
-
-      //   collectionCount++;
-      // });
-      // }
       let numberVariable = figma.variables.getLocalVariables('FLOAT'),
-          heightArray: string[] = [],
+          scopesCases: string[] = ['ALL_SCOPES', 'TEXT_CONTENT', 'CORNER_RADIUS', 'WIDTH_HEIGHT', 'GAP'],
+          sizeArray: string[] = [],
           conditionalWidthHeight = numberVariable.some(numberVariable => numberVariable.scopes.toString().includes('WIDTH_HEIGHT'));
 
       if(conditionalWidthHeight) {
         numberVariable.forEach(element => {
           if(element){
-            writeVariables(element, "WIDTH_HEIGHT", heightArray);
+            writeVariables(element, "WIDTH_HEIGHT", sizeArray);
           }
         });
       } else {
         numberVariable.forEach(element => {
           if(element){
-            writeVariables(element, "WIDTH_HEIGHT", heightArray, false);
+            writeVariables(element, "WIDTH_HEIGHT", sizeArray, false);
           }
         });
       }
-      result.setSuggestions(heightArray.filter(s => s.includes(query)))
+      result.setSuggestions(sizeArray.filter(s => s.includes(query)))
     break;
   }
 })
@@ -243,13 +186,37 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
 
       case 'height':
       case 'width':
-        
-        const maSelection: RectangleNode = figma.currentPage.selection[0] as RectangleNode;
-        const maVariable = figma.variables.getVariableById('VariableID:177:26');
-        if(maVariable){
-          maSelection.setBoundVariable(command, maVariable.id);
+      case 'itemSpacing':
+  //       'height'
+  // | 'width'
+  // | 'characters'
+  // | 'itemSpacing'
+  // | 'paddingLeft'
+  // | 'paddingRight'
+  // | 'paddingTop'
+  // | 'paddingBottom'
+  // | 'visible'
+  // | 'topLeftRadius'
+  // | 'topRightRadius'
+  // | 'bottomLeftRadius'
+  // | 'bottomRightRadius'
+  // | 'minWidth'
+  // | 'maxWidth'
+  // | 'minHeight'
+  // | 'maxHeight'
+  // | 'counterAxisSpacing'
+
+      let myNumberVariables = figma.variables.getLocalVariables('FLOAT');
+      const maSelection: RectangleNode = figma.currentPage.selection[0] as RectangleNode;
+      const commandStringify = command.toString();
+      const parameterLowerCase = parameters[command].toLowerCase();
+      console.log(parameters[command].toLowerCase());
+
+      myNumberVariables.forEach(element => {
+        if(parameterLowerCase.includes(element.name)){
+          maSelection.setBoundVariable(command, element.id);
         }
-        
+      });
 
       break;
     }
@@ -280,10 +247,10 @@ function writeVariables(contextualElement: any, numberScoping: string, myArray: 
         variableValueNumber = contextualElement.valuesByMode[Object.keys(contextualElement.valuesByMode)[0]] as Number;
 
   if(checkCondition && contextualElement.scopes.toString().includes(numberScoping)){
-    myArray.push(variableValueNumber + 'px (' + getNumberCollectionInfo?.name + ')');
+    myArray.push(variableValueNumber + 'px (' + contextualElement?.name + ' - ' + getNumberCollectionInfo?.name + ')');
   }
 
   if(!checkCondition){
-    myArray.push(variableValueNumber + 'px (' + getNumberCollectionInfo?.name + ')');
+    myArray.push(variableValueNumber + 'px (' + contextualElement?.name + ' - ' + getNumberCollectionInfo?.name + ')');
   }
 }

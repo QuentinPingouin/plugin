@@ -58,6 +58,17 @@
           "description": "Choose your width (variable)"
         }
       ]
+    },
+    {
+      "name": "Gap",
+      "command": "itemSpacing",
+      "parameters": [
+        {
+          "name": "Gap",
+          "key": "itemSpacing",
+          "description": "Choose your size (variable)"
+        }
+      ]
     }
   ],
   "networkAccess": {
