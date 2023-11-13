@@ -21,21 +21,43 @@
         ]
     },
     {
-        "name": "Stroke",
-        "command": "stroke",
+        "name": "Border",
+        "command": "border",
         "parameters": [
           {
             "name": "Color",
-            "key": "stroke_color",
+            "key": "border_color",
             "description": "Choose your color (variable)"
           },
           {
             "name": "Width",
-            "key": "stroke_width",
+            "key": "border_width",
             "description": "Choose your size",
             "optional": true
           }
         ]
+    },
+    {
+      "name": "Height",
+      "command": "height",
+      "parameters": [
+        {
+          "name": "Height",
+          "key": "height",
+          "description": "Choose your height (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Width",
+      "command": "width",
+      "parameters": [
+        {
+          "name": "Width",
+          "key": "width",
+          "description": "Choose your width (variable)"
+        }
+      ]
     }
   ],
   "networkAccess": {
