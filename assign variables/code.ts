@@ -3,7 +3,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
   switch(key){
     case 'color':
     case 'border_color':
-      let colorNames: string[] = [];
+    let colorNames: string[] = [];
     let dataNames: string[] = [];
     
     let getCollection = figma.variables.getLocalVariableCollections();
@@ -94,21 +94,57 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
 
     case 'height':
     case 'width':
+    case 'itemSpacing':
+    case 'radius':
+    case 'characters':
       let numberVariable = figma.variables.getLocalVariables('FLOAT'),
           scopesCases: string[] = ['ALL_SCOPES', 'TEXT_CONTENT', 'CORNER_RADIUS', 'WIDTH_HEIGHT', 'GAP'],
           sizeArray: string[] = [],
-          conditionalWidthHeight = numberVariable.some(numberVariable => numberVariable.scopes.toString().includes('WIDTH_HEIGHT'));
+          scopeType = 'ALL_SCOPES',
+          scopeArray: string[] = [];
 
-      if(conditionalWidthHeight) {
+      numberVariable.forEach(element => {
+        if(element){
+          const scopeTypeActualy = element.scopes.toString();
+          scopeArray.push(scopeTypeActualy)
+        }
+      });
+
+      switch(key){
+        case 'height':
+        case 'width':
+          scopeType = "WIDTH_HEIGHT";
+        break;
+
+        case 'itemSpacing':
+          scopeType = 'GAP';
+        break;
+
+        case 'radius':
+          scopeType = 'CORNER_RADIUS';
+        break;
+
+        case 'characters':
+          scopeType = 'TEXT_CONTENT';
+        break;
+          
+        default:
+          scopeType = 'ALL_SCOPES';
+        break;
+      }
+               
+      let conditionalSize = scopeArray.toString().includes(scopeType);
+
+      if(conditionalSize) {
         numberVariable.forEach(element => {
           if(element){
-            writeVariables(element, "WIDTH_HEIGHT", sizeArray);
+            writeVariables(element, scopeType, sizeArray);
           }
         });
-      } else {
+      } else {      
         numberVariable.forEach(element => {
           if(element){
-            writeVariables(element, "WIDTH_HEIGHT", sizeArray, false);
+            writeVariables(element, 'ALL_SCOPES', sizeArray, false);
           }
         });
       }

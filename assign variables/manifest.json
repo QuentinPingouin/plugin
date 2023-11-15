@@ -69,6 +69,23 @@
           "description": "Choose your size (variable)"
         }
       ]
+    },
+    {
+        "name": "Border Radius",
+        "command": "radius",
+        "parameters": [
+          {
+            "name": "Border Radius",
+            "key": "radius",
+            "description": "Choose your size (variable)"
+          },
+          {
+            "name": "Position",
+            "key": "radiusPosition",
+            "description": "Choose your position",
+            "optional": true
+          }
+        ]
     }
   ],
   "networkAccess": {
