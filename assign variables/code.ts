@@ -97,6 +97,12 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
     case 'itemSpacing':
     case 'radius':
     case 'characters':
+    case 'padding':
+    case 'minWidth':
+    case 'maxWidth':
+    case 'minHeight':
+    case 'maxheight':
+    case 'counterAxisSpacing':
       let numberVariable = figma.variables.getLocalVariables('FLOAT'),
           scopesCases: string[] = ['ALL_SCOPES', 'TEXT_CONTENT', 'CORNER_RADIUS', 'WIDTH_HEIGHT', 'GAP'],
           sizeArray: string[] = [],
@@ -150,11 +156,62 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
       }
       result.setSuggestions(sizeArray.filter(s => s.includes(query)))
     break;
+
+    case 'radiusPosition':
+      let radiusPositionArray: string[] = ['Top', 'Top left', 'Top right', 'Bottom', 'Bottom left', 'Bottom right', 'Left', 'Right'];
+      // result.setSuggestions(radiusPositionArray.filter(s => s.includes(query)))
+      const suggestionsRadius = radiusPositionArray
+          .filter(s => s.includes(query))
+          .map((s, index) => {
+            // const variableStringToNumber = radiusPositionArray[index] as string; 
+            let sizeFixe = 16,
+                radiusSize = 6,
+                xPosition = 0,
+                yPosition = 0,
+                heightSize = 26,
+                widthSize = 26;
+
+            switch(s){
+              case 'Top':                
+                widthSize = 16;
+              break;
+              case 'Top right':
+                xPosition = -10;
+              break;
+              case 'Bottom':
+                yPosition = -10;
+                widthSize = 16;
+              break;
+              case 'Bottom left':
+                yPosition = -10;
+              break;
+              case 'Bottom right':
+                yPosition = -10;
+                xPosition = -10;
+              break;
+              case 'Right':
+                xPosition = -10;
+                heightSize = 16;
+              break;
+              case 'Left':
+                heightSize = 16;
+              break;
+            }
+
+            return ({ name: s, icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${widthSize}" height="${heightSize}" fill="#ffffff"  rx="${radiusSize}" x="${xPosition}" y="${yPosition}"/></svg>`});
+          });
+          
+      result.setSuggestions(suggestionsRadius);
+    break;
   }
 })
 
 figma.on('run', ({ command, parameters }: RunEvent) => {
   if(parameters){
+    let myNumberVariables = figma.variables.getLocalVariables('FLOAT');
+    const commandStringify = command.toString();
+    const parameterLowerCase = parameters[command].toLowerCase();
+
     switch(command) {
       case 'color':
         var variableColors: { [key: string]: any } = figma.variables.getLocalVariables("COLOR"),
@@ -184,6 +241,7 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
         }
       break;
 
+      //ERREUR ATTENTION
       case 'border':
         var variableColors: { [key: string]: any } = figma.variables.getLocalVariables("COLOR"),
             variableColorsLength = variableColors.length;
@@ -196,7 +254,6 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
             
             for(let mySelectionCount = 0; mySelectionCount < figmaSelection.length; mySelectionCount++){              
               const mySelection: RectangleNode = figmaSelection[mySelectionCount] as RectangleNode;
-              
               
               if(ChoiceColorId){
                 if(mySelection.strokes.length === 0){
@@ -223,37 +280,89 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
       case 'height':
       case 'width':
       case 'itemSpacing':
-  //       'height'
-  // | 'width'
+
   // | 'characters'
-  // | 'itemSpacing'
   // | 'paddingLeft'
   // | 'paddingRight'
   // | 'paddingTop'
   // | 'paddingBottom'
   // | 'visible'
-  // | 'topLeftRadius'
-  // | 'topRightRadius'
-  // | 'bottomLeftRadius'
-  // | 'bottomRightRadius'
   // | 'minWidth'
   // | 'maxWidth'
   // | 'minHeight'
   // | 'maxHeight'
   // | 'counterAxisSpacing'
 
-      let myNumberVariables = figma.variables.getLocalVariables('FLOAT');
-      const maSelection: RectangleNode = figma.currentPage.selection[0] as RectangleNode;
-      const commandStringify = command.toString();
-      const parameterLowerCase = parameters[command].toLowerCase();
-      console.log(parameters[command].toLowerCase());
+  // ATTENTION NE S'APPLIQUE QUE SUR LE PREMIER ELEMENT SELECTIONNE
 
-      myNumberVariables.forEach(element => {
-        if(parameterLowerCase.includes(element.name)){
-          maSelection.setBoundVariable(command, element.id);
+      // const maSelection: RectangleNode = figma.currentPage.selection[0] as RectangleNode;
+      let mySelectionFloatCount = 0;
+
+      figma.currentPage.selection.forEach(element => {
+        if(element){
+          const maSelection: RectangleNode = figma.currentPage.selection[mySelectionFloatCount] as RectangleNode;
+
+          myNumberVariables.forEach(element => {
+            if(parameterLowerCase.includes(element.name)){
+              maSelection.setBoundVariable(command, element.id);
+            }
+          });
+
+          mySelectionFloatCount++;
         }
       });
 
+      
+
+      break;
+
+      // Probleme d'affichage dans l'historique on ne voit pas le nom
+      // Ajouter une if non value 0
+      case 'radius':
+        let radiusLoopCount = 0;
+        figma.currentPage.selection.forEach(element => {
+          if(element){
+            const maSelection: RectangleNode = figma.currentPage.selection[radiusLoopCount] as RectangleNode;
+            myNumberVariables.forEach(element => {
+              if(parameterLowerCase.includes(element.name)){
+                const radiusPositionsArray = {
+                  'Top': ['topLeftRadius', 'topRightRadius'],
+                  'Top left': ['topLeftRadius'],
+                  'Top right': ['topRightRadius'],
+                  'Bottom': ['bottomLeftRadius', 'bottomRightRadius'],
+                  'Bottom left': ['bottomLeftRadius'],
+                  'Bottom right': ['bottomRightRadius'],
+                  'Left': ['topLeftRadius', 'bottomLeftRadius'],
+                  'Right': ['topRightRadius', 'bottomRightRadius'],
+                } as any;
+
+                switch(parameters.radiusPosition){
+                  case 'Top':
+                  case 'Top left':
+                  case 'Top right':
+                  case 'Bottom':
+                  case 'Bottom left':
+                  case 'Bottom right':
+                  case 'Left':
+                  case 'Right':
+                    let radiusPositionString = parameters.radiusPosition.toString();
+                    radiusPositionsArray[radiusPositionString].forEach((position: any) => {
+                      maSelection.setBoundVariable(position, element.id);
+                    });
+                  break;
+
+                  default:
+                    maSelection.setBoundVariable('topLeftRadius', element.id);
+                    maSelection.setBoundVariable('topRightRadius', element.id);
+                    maSelection.setBoundVariable('bottomLeftRadius', element.id);
+                    maSelection.setBoundVariable('bottomRightRadius', element.id);
+                  break;
+                }
+              }
+            });
+            radiusLoopCount++;
+          }
+        });
       break;
     }
   }
