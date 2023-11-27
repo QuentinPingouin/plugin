@@ -21,21 +21,39 @@
         ]
     },
     {
-        "name": "Border",
-        "command": "border",
-        "parameters": [
-          {
-            "name": "Color",
-            "key": "border_color",
-            "description": "Choose your color (variable)"
-          },
-          {
-            "name": "Width",
-            "key": "border_width",
-            "description": "Choose your size",
-            "optional": true
-          }
-        ]
+      "name": "Border",
+      "command": "border",
+      "parameters": [
+        {
+          "name": "Color",
+          "key": "border_color",
+          "description": "Choose your color (variable)"
+        },
+        {
+          "name": "Width",
+          "key": "border_width",
+          "description": "Choose your size",
+          "optional": true
+        }
+      ]
+    }
+    ,
+    {
+      "name": "Padding",
+      "command": "padding",
+      "parameters": [
+        {
+          "name": "Size",
+          "key": "paddingSize",
+          "description": "Choose your size"
+        },
+        {
+          "name": "Position",
+          "key": "paddingPosition",
+          "description": "Choose your position",
+          "optional": true
+        }
+      ]
     },
     {
       "name": "Height",
