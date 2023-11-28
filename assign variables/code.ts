@@ -335,10 +335,6 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
       // case 'itemSpacing': ATTENTION FAIRE EN SORTE DE METTRE EN VERTICAL OU HORIZONTALE OU LES DEUX SELON LE LAYOUT
 
       // | 'characters'
-      // | 'paddingLeft'
-      // | 'paddingRight'
-      // | 'paddingTop'
-      // | 'paddingBottom'
       // | 'visible'
       // | 'minWidth'
       // | 'maxWidth'
@@ -356,6 +352,53 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
           });
         });
 
+      break;
+
+      case 'padding':
+        const paddingTypeArray: string[] = ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'];
+        let complexPaddingParametresKey = Object.keys(parameters),
+            parametersPaddingLenght = complexPaddingParametresKey.length,
+            parametersPaddingLenghtString = parametersPaddingLenght.toString();                        
+
+        mySelection.forEach(selectedObject => {
+          myNumberVariables.forEach(floatElement => {
+            let complexPaddingParametre = parameters[complexPaddingParametresKey[0]].toLowerCase();
+            if(complexPaddingParametre.includes(floatElement.name.toLowerCase())){
+              paddingTypeArray.forEach(paddingType => {
+                if(parametersPaddingLenght == 1){
+                  if(paddingType == "paddingLeft" || paddingType == "paddingRight" || paddingType == "paddingBottom" || paddingType == "paddingTop"){
+                    selectedObject.setBoundVariable(paddingType, floatElement.id);
+                  }
+                } else if(parametersPaddingLenght == 2){
+                  switch(parameters[complexPaddingParametresKey[1]]){
+                    case 'Top & bottom':
+                      if(paddingType == "paddingBottom" || paddingType == "paddingTop"){
+                        selectedObject.setBoundVariable(paddingType, floatElement.id);
+                      }
+                    break;
+                    case 'Left & Right':
+                      if(paddingType == "paddingLeft" || paddingType == "paddingRight"){
+                        selectedObject.setBoundVariable(paddingType, floatElement.id);
+                      }
+                    break;
+                    case 'Right':
+                        selectedObject.setBoundVariable('paddingRight', floatElement.id);
+                    break;
+                    case 'Left':
+                        selectedObject.setBoundVariable('paddingLeft', floatElement.id);
+                    break;
+                    case 'Bottom':
+                        selectedObject.setBoundVariable('paddingBottom', floatElement.id);
+                    break;
+                    case 'Top':
+                        selectedObject.setBoundVariable('paddingTop', floatElement.id);
+                    break;
+                  } 
+                }
+              });
+            }
+          });          
+        });
       break;
 
       // Probleme d'affichage dans l'historique on ne voit pas le nom
