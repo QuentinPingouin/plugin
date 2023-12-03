@@ -315,6 +315,19 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
           result.setSuggestions(gapSizeArray);
         }
       break;
+      case 'character':
+        let textArray: string[] = [], 
+            myTextVariables = figma.variables.getLocalVariables('STRING');
+
+        myTextVariables.forEach(textVariable => {
+          let textValue = textVariable.valuesByMode[Object.keys(textVariable.valuesByMode)[0].toString()] as string,
+              textCollectionId = textVariable.variableCollectionId,
+              textCollectionName = figma.variables.getVariableCollectionById(textCollectionId);
+          
+          textArray.push(textValue + ' (' + textVariable.name + ' - ' + textCollectionName?.name + ')')
+        });
+        result.setSuggestions(textArray);
+      break;
     }
   }
 })
@@ -323,6 +336,7 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
   if(parameters){
     let myNumberVariables = figma.variables.getLocalVariables('FLOAT'),
         myColorVariables = figma.variables.getLocalVariables('COLOR'),
+        myStringVariables = figma.variables.getLocalVariables('STRING'),
         mySelection = figma.currentPage.selection,
         key = parameters[command];
 
@@ -513,6 +527,24 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
                 }
               });
             }
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+      break;
+      case 'character':
+        if(mySelection.length > 0){
+          mySelection.forEach(selectedObject => {
+            myStringVariables.forEach(stringVariable => {
+              let textValueByMode = stringVariable.valuesByMode[Object.keys(stringVariable.valuesByMode)[0]].toString();
+              if(key.toLowerCase().includes(textValueByMode.toLocaleLowerCase())){
+                if(selectedObject.type == 'TEXT'){
+                  selectedObject.setBoundVariable('characters', stringVariable.id);
+                } else {
+                  figma.notify('Please select a text layer')
+                }
+              }
+            });
           });
         } else {
           figma.notify('Please select an item')

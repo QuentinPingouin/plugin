@@ -151,7 +151,7 @@
     },
     {
       "name": "Text copywriting",
-      "command": "text",
+      "command": "character",
       "parameters": [
         {
           "name": "Content",
