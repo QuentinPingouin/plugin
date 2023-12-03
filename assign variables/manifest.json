@@ -5,6 +5,7 @@
   "main": "code.js",
   "capabilities": [],
   "enableProposedApi": false,
+  "permissions": ["teamlibrary"],
   "editorType": [
     "figma"
   ],

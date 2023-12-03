@@ -2,6 +2,42 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
   const emptySuggestionArray: string[] = ["You need variable to use this plugin"],
         emptyFloatSuggestionArray: string[] = ["You need number variable to use this"],
         emptyColorSuggestionArray: string[] = ["You need color variable to use this"];
+  
+  let importedColorVariable: any[] = [],
+      importedFloatVariable: any[] = [],
+      importedTextVariable: any[] = [],
+      importedCollection: any[] = [];
+      
+  async function getLibraryCollections() {
+    const libraryCollections =
+      await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
+    for (const libraryItem of libraryCollections) {
+      let variablesInLibrary = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(libraryItem.key);
+      importedCollection.push(libraryItem);
+
+      for(const variable of variablesInLibrary){
+        const importedVariable =
+          await figma.variables.importVariableByKeyAsync(variable.key);
+
+        switch(importedVariable.resolvedType){
+          case 'COLOR':           
+            importedColorVariable.push(importedVariable);
+          break;
+
+          case 'FLOAT':
+            importedFloatVariable.push(importedVariable);
+          break;
+
+          case 'STRING':    
+            importedTextVariable.push(importedVariable);            
+          break;
+        }
+      }
+    }
+    
+  }
+  
+
   if(figma.variables.getLocalVariables().length === 0){    
     result.setSuggestions(emptySuggestionArray);
   } else {
@@ -43,15 +79,31 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
               }
             }
           }
-          const suggestionsColor = colorNames
+
+          getLibraryCollections().then(() => {
+            importedColorVariable.forEach(colorImported => {
+              let getImportedColor = colorImported?.name.toLocaleLowerCase();
+              let getImportedValueMode = colorImported?.valuesByMode;
+              let hexImported = rgbaToHex(getImportedValueMode[Object.keys(getImportedValueMode)[0]]);
+
+              importedCollection.forEach(collectionImported => {
+                  if(colorImported.variableCollectionId.includes(collectionImported.key)){
+                    colorNames.push(getImportedColor + ' (' + collectionImported.name + ')' + ' <imported/>')
+                    dataNames.push(hexImported)
+                  }
+              });
+            });
+            const suggestionsColor = colorNames
               .filter(s => s.includes(query))
               .map((s, index) => {
                 const myHex = dataNames[index];
-
+                // UTILISER DATA POUR CHOISIR COMMENT APPLIQUER LES VALEURS
                 return ({ name: s, icon: `<svg width="$size$" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="${myHex}" /></svg>`})
               });
               
           result.setSuggestions(suggestionsColor);
+          });
+
         }
       break;
 
