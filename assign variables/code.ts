@@ -1,5 +1,4 @@
 figma.parameters.on('input', ({query, result, key, parameters}) =>{  
-  // console.log(figma.variables.getLocalVariables().length);
   const emptySuggestionArray: string[] = ["You need variable to use this plugin"],
         emptyFloatSuggestionArray: string[] = ["You need number variable to use this"],
         emptyColorSuggestionArray: string[] = ["You need color variable to use this"];
@@ -384,8 +383,6 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
       case 'maxWidth':
       case 'minHeight':
       case 'maxHeight':
-        console.log(command);
-        
         if(mySelection.length > 0){
           mySelection.forEach(selectedObject => {            
             myNumberVariables.forEach(numberElement => {
