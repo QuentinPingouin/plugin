@@ -110,8 +110,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
       case 'minWidth':
       case 'maxWidth':
       case 'minHeight':
-      case 'maxheight':
-        
+      case 'maxHeight':
         let numberVariable = figma.variables.getLocalVariables('FLOAT'),
             scopesCases: string[] = ['ALL_SCOPES', 'TEXT_CONTENT', 'CORNER_RADIUS', 'WIDTH_HEIGHT', 'GAP'],
             sizeArray: string[] = [],
@@ -381,10 +380,16 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
 
       case 'height':
       case 'width':
+      case 'minWidth':
+      case 'maxWidth':
+      case 'minHeight':
+      case 'maxHeight':
+        console.log(command);
+        
         if(mySelection.length > 0){
           mySelection.forEach(selectedObject => {            
             myNumberVariables.forEach(numberElement => {
-              if(key.toLowerCase().includes(numberElement.name)){
+              if(key.toLowerCase().includes(numberElement.name.toLowerCase())){
                 selectedObject.setBoundVariable(command, numberElement.id);
               }
             });
@@ -505,7 +510,7 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
           mySelection.forEach(selectedObject => {
             if(mySelection[0].type == 'FRAME' && mySelection[0].layoutMode != 'NONE' && 'layoutMode' in selectedObject){
               myNumberVariables.forEach(numberVariables => {
-                if(parameterKey.includes(numberVariables.name.toLowerCase())){
+                if(parameterKey.toLowerCase().includes(numberVariables.name.toLowerCase())){
                   selectedObject.setBoundVariable('itemSpacing', numberVariables.id);
                   selectedObject.setBoundVariable('counterAxisSpacing', numberVariables.id);
                 }

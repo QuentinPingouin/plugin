@@ -67,6 +67,28 @@
       ]
     },
     {
+      "name": "Min-height",
+      "command": "minHeight",
+      "parameters": [
+        {
+          "name": "Min-height",
+          "key": "minHeight",
+          "description": "Choose your min-height (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Max-height",
+      "command": "maxHeight",
+      "parameters": [
+        {
+          "name": "Max-height",
+          "key": "maxHeight",
+          "description": "Choose your max-height (variable)"
+        }
+      ]
+    },
+    {
       "name": "Width",
       "command": "width",
       "parameters": [
@@ -74,6 +96,28 @@
           "name": "Width",
           "key": "width",
           "description": "Choose your width (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Min-width",
+      "command": "minWidth",
+      "parameters": [
+        {
+          "name": "Min-width",
+          "key": "minWidth",
+          "description": "Choose your min-width (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Max-width",
+      "command": "maxWidth",
+      "parameters": [
+        {
+          "name": "Max-width",
+          "key": "maxWidth",
+          "description": "Choose your max-width (variable)"
         }
       ]
     },
@@ -104,6 +148,17 @@
             "optional": true
           }
         ]
+    },
+    {
+      "name": "Text copywriting",
+      "command": "text",
+      "parameters": [
+        {
+          "name": "Content",
+          "key": "character",
+          "description": "Choose your text (variable)"
+        }
+      ]
     }
   ],
   "networkAccess": {
