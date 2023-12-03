@@ -79,11 +79,11 @@
     },
     {
       "name": "Gap",
-      "command": "itemSpacing",
+      "command": "gap",
       "parameters": [
         {
           "name": "Gap",
-          "key": "itemSpacing",
+          "key": "gap_size",
           "description": "Choose your size (variable)"
         }
       ]

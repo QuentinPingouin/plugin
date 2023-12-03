@@ -1,5 +1,4 @@
 figma.parameters.on('input', ({query, result, key, parameters}) =>{  
-
   switch(key){
     case 'color':
     case 'border_color':
@@ -47,7 +46,6 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
     break;
 
     case 'border_width':
-
       let defaultStrokeSize: string[] = [];
       let getCollectionStroke = figma.variables.getLocalVariableCollections();
       let collectionLengthStroke = getCollectionStroke.length;
@@ -102,7 +100,6 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
     case 'maxWidth':
     case 'minHeight':
     case 'maxheight':
-    case 'counterAxisSpacing':
       let numberVariable = figma.variables.getLocalVariables('FLOAT'),
           scopesCases: string[] = ['ALL_SCOPES', 'TEXT_CONTENT', 'CORNER_RADIUS', 'WIDTH_HEIGHT', 'GAP'],
           sizeArray: string[] = [],
@@ -270,6 +267,34 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
           
       result.setSuggestions(suggestionsRadius);
     break;
+    case 'gap_size':
+
+      let gapNumberVariables = figma.variables.getLocalVariables('FLOAT');
+      let gapCount = 0;
+      let gapSizeArray: string[] = [];
+
+      gapNumberVariables.forEach(numberVariable => {
+        if(numberVariable.scopes.toString().includes('GAP')){    
+          let gapValues = numberVariable.valuesByMode[Object.keys(numberVariable.valuesByMode)[0]].toString();
+          let gapCollectionId = numberVariable.variableCollectionId;
+          let gapCollectionName = figma.variables.getVariableCollectionById(gapCollectionId)?.name;
+            
+          gapSizeArray.push(gapValues + 'px (' + numberVariable.name + ' - ' + gapCollectionName + ')');
+          gapCount++;
+        }
+      });
+
+      if(gapCount == 0) {
+        gapNumberVariables.forEach(numberVariable => {
+          let gapValues = numberVariable.valuesByMode[Object.keys(numberVariable.valuesByMode)[0]].toString();
+          let gapCollectionId = numberVariable.variableCollectionId;
+          let gapCollectionName = figma.variables.getVariableCollectionById(gapCollectionId)?.name;
+
+          gapSizeArray.push(gapValues + 'px (' + numberVariable.name + ' - ' + gapCollectionName + ')');
+        });        
+      }
+      result.setSuggestions(gapSizeArray);
+    break;
   }
 })
 
@@ -280,178 +305,192 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
         mySelection = figma.currentPage.selection,
         key = parameters[command];
 
-        
-    //a remplacer par key
-    let parameterLowerCase = '' as any;
-
     switch(command) {
       case 'color':
-        mySelection.forEach(selectedObject => {
-          myColorVariables.forEach(colorElement => {
-            if(key.includes(colorElement.name.toLowerCase())){
-              if ('fills' in selectedObject) {
-                if(selectedObject.fills.toLocaleString() === ""){
-                  selectedObject.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+        if(mySelection.length > 0){
+          mySelection.forEach(selectedObject => {
+            myColorVariables.forEach(colorElement => {
+              if(key.includes(colorElement.name.toLowerCase())){
+                if ('fills' in selectedObject) {
+                  if(selectedObject.fills.toLocaleString() === ""){
+                    selectedObject.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+                  }
+                  const fillsCopy = clone(selectedObject.fills);
+                  fillsCopy[0] = figma.variables.setBoundVariableForPaint(fillsCopy[0], 'color', colorElement)
+                  selectedObject.fills = fillsCopy
                 }
-                const fillsCopy = clone(selectedObject.fills);
-                fillsCopy[0] = figma.variables.setBoundVariableForPaint(fillsCopy[0], 'color', colorElement)
-                selectedObject.fills = fillsCopy
               }
-            }
-          });          
-        });
+            });          
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+        
       break;
 
-      //ERREUR ATTENTION
-      // EN COURS DE REFACTORING POUR LES FOREACH ICI !
       case 'border':
-        let complexParametresKey = Object.keys(parameters),
-            parametersLenght = complexParametresKey.length,
-            parametersLenghtString = parametersLenght.toString();            
-
-        mySelection.forEach(selectedObject => {
-          myColorVariables.forEach(colorElement => {
-            let complexParametre = parameters[complexParametresKey[0]].toLowerCase();
-            if(complexParametre.includes(colorElement.name.toLowerCase()) && 'strokes' in selectedObject){
-              if(selectedObject.strokes.length === 0){                    
-                selectedObject.strokes = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
-                selectedObject.strokeWeight = 1;
+        let complexParametresKey = Object.keys(parameters);           
+        if(mySelection.length > 0){
+          mySelection.forEach(selectedObject => {
+            myColorVariables.forEach(colorElement => {
+              let complexParametre = parameters[complexParametresKey[0]].toLowerCase();
+              if(complexParametre.includes(colorElement.name.toLowerCase()) && 'strokes' in selectedObject){
+                if(selectedObject.strokes.length === 0){                    
+                  selectedObject.strokes = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+                  selectedObject.strokeWeight = 1;
+                }
+                const strokesCopy = clone(selectedObject.strokes);
+                strokesCopy[0] = figma.variables.setBoundVariableForPaint(strokesCopy[0], 'color', colorElement);
+                selectedObject.strokes = strokesCopy;
+  
+                if(parameters.border_width != undefined){
+                  const numberStrokeWidth = extractNumber(parameters.border_width) as number;
+                  selectedObject.strokeWeight = numberStrokeWidth;
+                }
               }
-              const strokesCopy = clone(selectedObject.strokes);
-              strokesCopy[0] = figma.variables.setBoundVariableForPaint(strokesCopy[0], 'color', colorElement);
-              selectedObject.strokes = strokesCopy;
-
-              if(parameters.border_width != undefined){
-                const numberStrokeWidth = extractNumber(parameters.border_width) as number;
-                selectedObject.strokeWeight = numberStrokeWidth;
-              }
-            }
-          });          
-        });
+            });          
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+        
       break;
 
       case 'height':
       case 'width':
-      // case 'itemSpacing': ATTENTION FAIRE EN SORTE DE METTRE EN VERTICAL OU HORIZONTALE OU LES DEUX SELON LE LAYOUT
-
-      // | 'characters'
-      // | 'visible'
-      // | 'minWidth'
-      // | 'maxWidth'
-      // | 'minHeight'
-      // | 'maxHeight'
-      // | 'counterAxisSpacing'
-      // | ajouter, space between, stretch, fill, container, align centern justify content center,...
-      // Ajouter les notifications si erreur
-
-        mySelection.forEach(selectedObject => {
-          myNumberVariables.forEach(numberElement => {
-            if(key.toLowerCase().includes(numberElement.name)){
-              selectedObject.setBoundVariable(command, numberElement.id);
-            }
+        if(mySelection.length > 0){
+          mySelection.forEach(selectedObject => {
+            myNumberVariables.forEach(numberElement => {
+              if(key.toLowerCase().includes(numberElement.name)){
+                selectedObject.setBoundVariable(command, numberElement.id);
+              }
+            });
           });
-        });
-
+        } else {
+          figma.notify('Please select an item')
+        }
       break;
 
       case 'padding':
         const paddingTypeArray: string[] = ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'];
         let complexPaddingParametresKey = Object.keys(parameters),
-            parametersPaddingLenght = complexPaddingParametresKey.length,
-            parametersPaddingLenghtString = parametersPaddingLenght.toString();                        
+            parametersPaddingLenght = complexPaddingParametresKey.length;                        
+        if(mySelection.length > 0){
+          mySelection.forEach(selectedObject => {
+            if(mySelection[0].type == 'FRAME' && mySelection[0].layoutMode != 'NONE'){
+              myNumberVariables.forEach(floatElement => {
+                let complexPaddingParametre = parameters[complexPaddingParametresKey[0]].toLowerCase();
+                if(complexPaddingParametre.includes(floatElement.name.toLowerCase())){
+                  paddingTypeArray.forEach(paddingType => {
+                    if(parametersPaddingLenght == 1){
+                      if(paddingType == "paddingLeft" || paddingType == "paddingRight" || paddingType == "paddingBottom" || paddingType == "paddingTop"){
+                        selectedObject.setBoundVariable(paddingType, floatElement.id);
+                      }
+                    } else if(parametersPaddingLenght == 2){
+                      switch(parameters[complexPaddingParametresKey[1]]){
+                        case 'Top & bottom':
+                          if(paddingType == "paddingBottom" || paddingType == "paddingTop"){
+                            selectedObject.setBoundVariable(paddingType, floatElement.id);
+                          }
+                        break;
+                        case 'Left & Right':
+                          if(paddingType == "paddingLeft" || paddingType == "paddingRight"){
+                            selectedObject.setBoundVariable(paddingType, floatElement.id);
+                          }
+                        break;
+                        case 'Right':
+                            selectedObject.setBoundVariable('paddingRight', floatElement.id);
+                        break;
+                        case 'Left':
+                            selectedObject.setBoundVariable('paddingLeft', floatElement.id);
+                        break;
+                        case 'Bottom':
+                            selectedObject.setBoundVariable('paddingBottom', floatElement.id);
+                        break;
+                        case 'Top':
+                            selectedObject.setBoundVariable('paddingTop', floatElement.id);
+                        break;
+                      } 
+                    }
+                  });
+                }
+              });  
+            } else {
+              figma.notify("Auto layout required for padding... Sorry")
+            }     
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+        
+      break;
 
-        mySelection.forEach(selectedObject => {
-          myNumberVariables.forEach(floatElement => {
-            let complexPaddingParametre = parameters[complexPaddingParametresKey[0]].toLowerCase();
-            if(complexPaddingParametre.includes(floatElement.name.toLowerCase())){
-              paddingTypeArray.forEach(paddingType => {
-                if(parametersPaddingLenght == 1){
-                  if(paddingType == "paddingLeft" || paddingType == "paddingRight" || paddingType == "paddingBottom" || paddingType == "paddingTop"){
-                    selectedObject.setBoundVariable(paddingType, floatElement.id);
-                  }
-                } else if(parametersPaddingLenght == 2){
-                  switch(parameters[complexPaddingParametresKey[1]]){
-                    case 'Top & bottom':
-                      if(paddingType == "paddingBottom" || paddingType == "paddingTop"){
-                        selectedObject.setBoundVariable(paddingType, floatElement.id);
-                      }
-                    break;
-                    case 'Left & Right':
-                      if(paddingType == "paddingLeft" || paddingType == "paddingRight"){
-                        selectedObject.setBoundVariable(paddingType, floatElement.id);
-                      }
-                    break;
-                    case 'Right':
-                        selectedObject.setBoundVariable('paddingRight', floatElement.id);
-                    break;
-                    case 'Left':
-                        selectedObject.setBoundVariable('paddingLeft', floatElement.id);
-                    break;
-                    case 'Bottom':
-                        selectedObject.setBoundVariable('paddingBottom', floatElement.id);
-                    break;
+      case 'radius':
+        let radiusLoopCount = 0;
+        if(figma.currentPage.selection.length > 0){
+          figma.currentPage.selection.forEach(element => {
+            if(element){
+              const maSelection: RectangleNode = figma.currentPage.selection[radiusLoopCount] as RectangleNode;
+              myNumberVariables.forEach(element => {
+                if(key.toLowerCase().includes(element.name)){
+                  const radiusPositionsArray = {
+                    'Top': ['topLeftRadius', 'topRightRadius'],
+                    'Top left': ['topLeftRadius'],
+                    'Top right': ['topRightRadius'],
+                    'Bottom': ['bottomLeftRadius', 'bottomRightRadius'],
+                    'Bottom left': ['bottomLeftRadius'],
+                    'Bottom right': ['bottomRightRadius'],
+                    'Left': ['topLeftRadius', 'bottomLeftRadius'],
+                    'Right': ['topRightRadius', 'bottomRightRadius'],
+                  } as any;
+  
+                  switch(parameters.radiusPosition){
                     case 'Top':
-                        selectedObject.setBoundVariable('paddingTop', floatElement.id);
+                    case 'Top left':
+                    case 'Top right':
+                    case 'Bottom':
+                    case 'Bottom left':
+                    case 'Bottom right':
+                    case 'Left':
+                    case 'Right':
+                      let radiusPositionString = parameters.radiusPosition.toString();
+                      radiusPositionsArray[radiusPositionString].forEach((position: any) => {
+                        maSelection.setBoundVariable(position, element.id);
+                      });
                     break;
-                  } 
+  
+                    default:
+                      maSelection.setBoundVariable('topLeftRadius', element.id);
+                      maSelection.setBoundVariable('topRightRadius', element.id);
+                      maSelection.setBoundVariable('bottomLeftRadius', element.id);
+                      maSelection.setBoundVariable('bottomRightRadius', element.id);
+                    break;
+                  }
+                }
+              });
+              radiusLoopCount++;
+            }
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+      break;
+      case 'gap':
+        let parameterKey = parameters[Object.keys(parameters).toString()];
+        if(mySelection.length > 0){
+          mySelection.forEach(selectedObject => {
+            if(mySelection[0].type == 'FRAME' && mySelection[0].layoutMode != 'NONE' && 'layoutMode' in selectedObject){
+              myNumberVariables.forEach(numberVariables => {
+                if(parameterKey.includes(numberVariables.name.toLowerCase())){
+                  selectedObject.setBoundVariable('itemSpacing', numberVariables.id);
+                  selectedObject.setBoundVariable('counterAxisSpacing', numberVariables.id);
                 }
               });
             }
-          });          
-        });
-      break;
-
-      // Probleme d'affichage dans l'historique on ne voit pas le nom
-      // Ajouter une if non value 0
-      case 'radius':
-        parameterLowerCase = parameters[command].toLowerCase();
-        let radiusLoopCount = 0;
-        figma.currentPage.selection.forEach(element => {
-          if(element){
-            const maSelection: RectangleNode = figma.currentPage.selection[radiusLoopCount] as RectangleNode;
-            myNumberVariables.forEach(element => {
-              if(parameterLowerCase.includes(element.name)){
-                const radiusPositionsArray = {
-                  'Top': ['topLeftRadius', 'topRightRadius'],
-                  'Top left': ['topLeftRadius'],
-                  'Top right': ['topRightRadius'],
-                  'Bottom': ['bottomLeftRadius', 'bottomRightRadius'],
-                  'Bottom left': ['bottomLeftRadius'],
-                  'Bottom right': ['bottomRightRadius'],
-                  'Left': ['topLeftRadius', 'bottomLeftRadius'],
-                  'Right': ['topRightRadius', 'bottomRightRadius'],
-                } as any;
-
-                switch(parameters.radiusPosition){
-                  case 'Top':
-                  case 'Top left':
-                  case 'Top right':
-                  case 'Bottom':
-                  case 'Bottom left':
-                  case 'Bottom right':
-                  case 'Left':
-                  case 'Right':
-                    let radiusPositionString = parameters.radiusPosition.toString();
-                    radiusPositionsArray[radiusPositionString].forEach((position: any) => {
-                      maSelection.setBoundVariable(position, element.id);
-                    });
-                  break;
-
-                  default:
-                    maSelection.setBoundVariable('topLeftRadius', element.id);
-                    maSelection.setBoundVariable('topRightRadius', element.id);
-                    maSelection.setBoundVariable('bottomLeftRadius', element.id);
-                    maSelection.setBoundVariable('bottomRightRadius', element.id);
-                  break;
-                }
-              }
-            });
-            radiusLoopCount++;
-          }
-        });
-      break;
-      case 'padding':
-        console.log('padding');
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
       break;
     }
   }
