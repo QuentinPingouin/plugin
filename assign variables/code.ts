@@ -1,4 +1,11 @@
 figma.parameters.on('input', ({query, result, key, parameters}) =>{  
+  const getNumberVariable = figma.variables.getLocalVariables('FLOAT'),
+        getColorVariable = figma.variables.getLocalVariables('COLOR'),
+        getTextVariable = figma.variables.getLocalVariables('STRING');
+  
+  let colorNames: string[] = [];
+  let colorObjects: any[] = [];
+  let floatObjects: any[] = [];
   const emptySuggestionArray: string[] = ["You need variable to use this plugin"],
         emptyFloatSuggestionArray: string[] = ["You need number variable to use this"],
         emptyColorSuggestionArray: string[] = ["You need color variable to use this"];
@@ -34,122 +41,153 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
         }
       }
     }
-    
   }
   
-
-  if(figma.variables.getLocalVariables().length === 0){    
-    result.setSuggestions(emptySuggestionArray);
-  } else {
+  // if(figma.variables.getLocalVariables().length === 0){    
+  //   result.setSuggestions(emptySuggestionArray);
+  // } else {
     switch(key){
       case 'color':
       case 'border_color':
-        if(figma.variables.getLocalVariables('COLOR').length === 0){
-          result.setSuggestions(emptyColorSuggestionArray);
-        } else {
-          let colorNames: string[] = [];
-          let dataNames: string[] = [];
-          
-          let getCollection = figma.variables.getLocalVariableCollections();
-          let collectionLength = getCollection.length;
 
-          //Collection Loop
-          for (let collectionCount = 0; collectionCount < collectionLength; collectionCount++) {
-            let collection = getCollection[collectionCount];
-            let collectionName = collection.name;
-            let collectionVariablesIds = collection.variableIds;
-            let collectionVariablesIdsLength = collectionVariablesIds.length;
+      getColorVariable.forEach(color => {
+        const colorCollectionId = color.variableCollectionId,
+              colorCollectionName = figma.variables.getVariableCollectionById(colorCollectionId)?.name,
+              colorName = color.name,
+              colorVariableId = color.id,
+              // colorValue = color.valuesByMode,
+              // colorFirstValue = colorValue[Object.keys(colorValue)[0]] as RGBA,
+              colorHexValue = rgbaToHex(color.valuesByMode[Object.keys(color.valuesByMode)[0]] as RGBA);
 
-            //Variables Loop
-            for (let variableIdsCount = 0; variableIdsCount < collectionVariablesIdsLength; variableIdsCount++) {
-              let variableIdsString = collectionVariablesIds[variableIdsCount];
-              let variableObjet = figma.variables.getVariableById(`${variableIdsString}`);
-              let getColor = variableObjet?.name.toLocaleLowerCase();
-              let getValueMode = variableObjet?.valuesByMode;
-              let getResolveType = variableObjet?.resolvedType;
+              colorObjects.push({
+                name: colorName,
+                // rgbaValue: colorFirstValue,
+                hexValue: colorHexValue,
+                id: colorVariableId,
+                collectionName: colorCollectionName,
+                collectionId: colorCollectionId,
+                location: 'Local',
+                searchValue: colorName + ' (' + colorCollectionName + ')' 
+              })        
+      });
+      
+        // if(figma.variables.getLocalVariables('COLOR').length === 0){
+        //   result.setSuggestions(emptyColorSuggestionArray);
+        // } else {
+          // let colorNames: string[] = [];
 
-              if(getResolveType == 'COLOR' && getColor !== undefined) {
-                //Push the color name to the array
-                if(getValueMode){
-                  let firstModeValue = getValueMode[Object.keys(getValueMode)[0]] as RGBA;
-
-                  colorNames.push(getColor + ' (' + collectionName + ')');
-                  dataNames.push(rgbaToHex(firstModeValue));
-                }
-              }
-            }
-          }
 
           getLibraryCollections().then(() => {
-            importedColorVariable.forEach(colorImported => {
-              let getImportedColor = colorImported?.name.toLocaleLowerCase();
-              let getImportedValueMode = colorImported?.valuesByMode;
-              let hexImported = rgbaToHex(getImportedValueMode[Object.keys(getImportedValueMode)[0]]);
+            importedColorVariable.forEach(importedColor => {
+              const colorCollectionId = importedColor.variableCollectionId,
+                colorCollectionNameImported = figma.variables.getVariableCollectionById(colorCollectionId)?.name,
+                colorNameImported = importedColor.name,
+                colorVariableIdImported = importedColor.id,
+                // colorValueImported = importedColor.valuesByMode,
+                // colorFirstValueImported = colorValueImported[Object.keys(colorValueImported)[0]] as RGBA,
+                colorHexValueImported = rgbaToHex(importedColor.valuesByMode[Object.keys(importedColor.valuesByMode)[0]] as RGBA);
 
-              importedCollection.forEach(collectionImported => {
-                  if(colorImported.variableCollectionId.includes(collectionImported.key)){
-                    colorNames.push(getImportedColor + ' (' + collectionImported.name + ')' + ' <imported/>')
-                    dataNames.push(hexImported)
-                  }
-              });
-            });
-            const suggestionsColor = colorNames
-              .filter(s => s.includes(query))
+              colorObjects.push({
+                name: colorNameImported,
+                // rgbaValue: colorFirstValueImported,
+                hexValue: colorHexValueImported,
+                id: colorVariableIdImported,
+                collectionName: colorCollectionNameImported,
+                collectionId: colorCollectionId,
+                location: 'Imported',
+                searchValue: colorNameImported + ' (' + colorCollectionNameImported + ')' 
+              })  
+              
+            });     
+            const suggestionsColor = colorObjects
+              .filter(s => s.searchValue.includes(query))
               .map((s, index) => {
-                const myHex = dataNames[index];
-                // UTILISER DATA POUR CHOISIR COMMENT APPLIQUER LES VALEURS
-                return ({ name: s, icon: `<svg width="$size$" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="${myHex}" /></svg>`})
+                const currentColor = colorObjects[index]
+                return ({ 
+                  name: s.searchValue,
+                  icon: `<svg width="$size$" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="${currentColor.hexValue}" /></svg>`,
+                  data: {
+                    variableID: currentColor.id,
+                    collectionId: currentColor.collectionId,
+                    localOrImported: currentColor.location,
+                  }})
               });
               
-          result.setSuggestions(suggestionsColor);
+          result.setSuggestions(suggestionsColor);     
           });
-
-        }
+        // }
       break;
 
       case 'border_width':
-        let defaultStrokeSize: string[] = [];
-        let getCollectionStroke = figma.variables.getLocalVariableCollections();
-        let collectionLengthStroke = getCollectionStroke.length;
-        let floatVariableCount = figma.variables.getLocalVariables('FLOAT').length;
+        getNumberVariable.forEach(float => {
+          const floatCollectionId = float.variableCollectionId,
+                floatCollectionName = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
+                floatName = float.name,
+                floatVariableId = float.id,
+                floatValue = float.valuesByMode[Object.keys(float.valuesByMode)[0]] as number;
+  
+            floatObjects.push({
+              name: floatName,
+              value: floatValue,
+              id: floatVariableId,
+              collectionName: floatCollectionName,
+              collectionId: floatCollectionId,
+              location: 'Local',
+              searchValue: floatValue + 'px (' + floatName + ' - ' + floatCollectionName + ')' 
+            })        
+        });
 
-        //Collection Loop
-        for (let collectionCount = 0; collectionCount < collectionLengthStroke; collectionCount++) {
-          let collection = getCollectionStroke[collectionCount];
-          let collectionName = collection.name;
-          let collectionVariablesIds = collection.variableIds;
-          let collectionVariablesIdsLength = collectionVariablesIds.length;
+        getLibraryCollections().then(() => {
+          importedFloatVariable.forEach(importedFloat => {
+            const floatCollectionId = importedFloat.variableCollectionId,
+                  floatCollectionNameImported = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
+                  floatNameImported = importedFloat.name,
+                  floatVariableIdImported = importedFloat.id,
+                  floatValueImported = importedFloat.valuesByMode[Object.keys(importedFloat.valuesByMode)[0]] as number;
 
-          //Variables Loop
-          for (let variableIdsCount = 0; variableIdsCount < collectionVariablesIdsLength; variableIdsCount++) {
-            let variableIdsString = collectionVariablesIds[variableIdsCount];
-            let variableObjet = figma.variables.getVariableById(`${variableIdsString}`);
-            let getColor = variableObjet?.name;
-            let getValueMode = variableObjet?.valuesByMode;
-            let getResolveType = variableObjet?.resolvedType;
-
-            if(getResolveType == 'FLOAT' && floatVariableCount > 0) {
-              if(getValueMode){
-                let firstModeValue = getValueMode[Object.keys(getValueMode)[0]] as Number;
-                defaultStrokeSize.push(firstModeValue + 'px  (' + collectionName + ')');
-              }
-            }
-          }
-        }
-        if(floatVariableCount === 0) {
-          defaultStrokeSize.push('1', '2', '3', '4', '5', '6', '7', '8', '9', '10');
-        }
-
-        const suggestionsNumber = defaultStrokeSize
-            .filter(s => s.includes(query))
-            .map((s, index) => {
-              const variableStringToNumber = extractNumber(defaultStrokeSize[index]) as number; 
-              const sizeFixe = 16;          
-
-              return ({ name: s, icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" stroke="red" stroke-width="${variableStringToNumber}"/></svg>`});
-            });
+            floatObjects.push({
+              name: floatNameImported,
+              value: floatValueImported,
+              id: floatVariableIdImported,
+              collectionName: floatCollectionNameImported,
+              collectionId: floatCollectionId,
+              location: 'Imported',
+              searchValue: floatValueImported + 'px (' + floatNameImported + ' - ' + floatCollectionNameImported + ')' 
+            })  
             
-        result.setSuggestions(suggestionsNumber);
+          });
+
+          if(floatObjects.length == 0){
+            for(let numberCount = 0; numberCount <= 10; numberCount++){              
+              floatObjects.push({
+                name: '', 
+                value: numberCount, 
+                id: 'created/' + numberCount,
+                collectionId: 'createdCollection/' + numberCount,
+                location: 'created',
+                searchValue: numberCount + 'px',
+              })              
+            }
+          } else {
+            floatObjects.sort((a, b) => a.value - b.value);
+          }
+          
+          const suggestionsFloat = floatObjects
+            .filter(s => s.searchValue.includes(query))
+            .map((s) => {              
+              const sizeFixe = 16;  
+              return ({ 
+                name: s.searchValue,
+                icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" stroke="red" stroke-width="${s.value}"/></svg>`,
+                data: {
+                  value : s.value,
+                  variableID: s.id,
+                  collectionId: s.collectionId,
+                  localOrImported: s.location,
+                }})
+            });
+          result.setSuggestions(suggestionsFloat);  
+        });
       break;
 
       case 'height':
@@ -381,11 +419,11 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
         result.setSuggestions(textArray);
       break;
     }
-  }
+  // }
 })
 
 figma.on('run', ({ command, parameters }: RunEvent) => {
-  if(parameters){
+  if(parameters){    
     let myNumberVariables = figma.variables.getLocalVariables('FLOAT'),
         myColorVariables = figma.variables.getLocalVariables('COLOR'),
         myStringVariables = figma.variables.getLocalVariables('STRING'),
@@ -394,53 +432,45 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
 
     switch(command) {
       case 'color':
-        if(mySelection.length > 0){
+        let selectedVariable = figma.variables.getVariableById(key.variableID);
+        if(mySelection.length > 0){          
           mySelection.forEach(selectedObject => {
-            myColorVariables.forEach(colorElement => {
-              if(key.includes(colorElement.name.toLowerCase())){
-                if ('fills' in selectedObject) {
-                  if(selectedObject.fills.toLocaleString() === ""){
-                    selectedObject.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
-                  }
-                  const fillsCopy = clone(selectedObject.fills);
-                  fillsCopy[0] = figma.variables.setBoundVariableForPaint(fillsCopy[0], 'color', colorElement)
-                  selectedObject.fills = fillsCopy
-                }
+            if ('fills' in selectedObject && selectedVariable) {
+              if(selectedObject.fills.toLocaleString() === ""){
+                selectedObject.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
               }
-            });          
+              const fillsCopy = clone(selectedObject.fills);
+              fillsCopy[0] = figma.variables.setBoundVariableForPaint(fillsCopy[0], 'color', selectedVariable)
+              selectedObject.fills = fillsCopy
+            }
           });
         } else {
-          figma.notify('Please select an item')
-        }
-        
+          figma.notify('Please, select an item')
+        }        
       break;
 
       case 'border':
-        let complexParametresKey = Object.keys(parameters);           
+        let borderColorID = parameters['border_color']?.variableID,
+            currentColorVariable = figma.variables.getVariableById(borderColorID);
+
         if(mySelection.length > 0){
           mySelection.forEach(selectedObject => {
-            myColorVariables.forEach(colorElement => {
-              let complexParametre = parameters[complexParametresKey[0]].toLowerCase();
-              if(complexParametre.includes(colorElement.name.toLowerCase()) && 'strokes' in selectedObject){
-                if(selectedObject.strokes.length === 0){                    
-                  selectedObject.strokes = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
-                  selectedObject.strokeWeight = 1;
-                }
-                const strokesCopy = clone(selectedObject.strokes);
-                strokesCopy[0] = figma.variables.setBoundVariableForPaint(strokesCopy[0], 'color', colorElement);
-                selectedObject.strokes = strokesCopy;
-  
-                if(parameters.border_width != undefined){
-                  const numberStrokeWidth = extractNumber(parameters.border_width) as number;
-                  selectedObject.strokeWeight = numberStrokeWidth;
-                }
+            if('strokes' in selectedObject && currentColorVariable){
+              if(selectedObject.strokes.toString() === ''){
+                selectedObject.strokes = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
               }
-            });          
+              const strokesCopy = clone(selectedObject.strokes);
+              strokesCopy[0] = figma.variables.setBoundVariableForPaint(strokesCopy[0], 'color', currentColorVariable)
+              selectedObject.strokes = strokesCopy
+              if(parameters['border_width'] != undefined){             
+                selectedObject.strokeWeight = parameters['border_width'].value;
+              }
+            }
           });
+
         } else {
-          figma.notify('Please select an item')
+          figma.notify('Please, select an item')
         }
-        
       break;
 
       case 'height':
