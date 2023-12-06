@@ -35,6 +35,12 @@
           "key": "border_width",
           "description": "Choose your size",
           "optional": true
+        },
+        {
+          "name": "Position",
+          "key": "border_position",
+          "description": "Choose your position",
+          "optional": true
         }
       ]
     }
@@ -158,6 +164,17 @@
           "name": "Content",
           "key": "character",
           "description": "Choose your text (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Opacity",
+      "command": "opacity",
+      "parameters": [
+        {
+          "name": "Opacity",
+          "key": "opacity",
+          "description": "Choose your opacity (variable)"
         }
       ]
     }

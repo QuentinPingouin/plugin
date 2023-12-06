@@ -6,6 +6,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
   let colorNames: string[] = [];
   let colorObjects: any[] = [];
   let floatObjects: any[] = [];
+  let textObjects: any[] = [];
   const emptySuggestionArray: string[] = ["You need variable to use this plugin"],
         emptyFloatSuggestionArray: string[] = ["You need number variable to use this"],
         emptyColorSuggestionArray: string[] = ["You need color variable to use this"];
@@ -67,7 +68,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                 collectionName: colorCollectionName,
                 collectionId: colorCollectionId,
                 location: 'Local',
-                searchValue: colorName + ' (' + colorCollectionName + ')' 
+                searchValue: colorName + ' --> ' + colorCollectionName 
               })        
       });
       
@@ -95,7 +96,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                 collectionName: colorCollectionNameImported,
                 collectionId: colorCollectionId,
                 location: 'Imported',
-                searchValue: colorNameImported + ' (' + colorCollectionNameImported + ')' 
+                searchValue: colorNameImported + ' --> ' + colorCollectionNameImported
               })  
               
             });     
@@ -119,6 +120,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
       break;
 
       case 'border_width':
+      case 'paddingSize':
         getNumberVariable.forEach(float => {
           const floatCollectionId = float.variableCollectionId,
                 floatCollectionName = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
@@ -133,7 +135,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
               collectionName: floatCollectionName,
               collectionId: floatCollectionId,
               location: 'Local',
-              searchValue: floatValue + 'px (' + floatName + ' - ' + floatCollectionName + ')' 
+              searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
             })        
         });
 
@@ -152,7 +154,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
               collectionName: floatCollectionNameImported,
               collectionId: floatCollectionId,
               location: 'Imported',
-              searchValue: floatValueImported + 'px (' + floatNameImported + ' - ' + floatCollectionNameImported + ')' 
+              searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported + ')' 
             })  
             
           });
@@ -171,252 +173,564 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
           } else {
             floatObjects.sort((a, b) => a.value - b.value);
           }
+          switch(key){
+            case 'border_width':
+              const suggestionsFloatBorder = floatObjects
+                .filter(s => s.searchValue.includes(query))
+                .map((s) => {              
+                  const sizeFixe = 16;  
+                  return ({ 
+                    name: s.searchValue,
+                    icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" stroke="red" stroke-width="${s.value}"/></svg>`,
+                    data: {
+                      value : s.value,
+                      variableID: s.id,
+                      collectionId: s.collectionId,
+                      localOrImported: s.location,
+                    }})
+              });
+              result.setSuggestions(suggestionsFloatBorder); 
+            break;
+            default:
+              const suggestionsFloat = floatObjects
+                .filter(s => s.searchValue.includes(query))
+                .map((s) => {              
+                  return ({ 
+                    name: s.searchValue,
+                    data: {
+                      value : s.value,
+                      variableID: s.id,
+                      collectionId: s.collectionId,
+                      localOrImported: s.location,
+                    }})
+              });
+              result.setSuggestions(suggestionsFloat);
+            break;
+          }
           
-          const suggestionsFloat = floatObjects
-            .filter(s => s.searchValue.includes(query))
-            .map((s) => {              
-              const sizeFixe = 16;  
-              return ({ 
-                name: s.searchValue,
-                icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" stroke="red" stroke-width="${s.value}"/></svg>`,
-                data: {
-                  value : s.value,
-                  variableID: s.id,
-                  collectionId: s.collectionId,
-                  localOrImported: s.location,
-                }})
-            });
-          result.setSuggestions(suggestionsFloat);  
+           
         });
       break;
 
       case 'height':
       case 'width':
-      case 'itemSpacing':
       case 'radius':
-      case 'characters':
-      case 'padding':
       case 'minWidth':
       case 'maxWidth':
       case 'minHeight':
       case 'maxHeight':
-        let numberVariable = figma.variables.getLocalVariables('FLOAT'),
-            scopesCases: string[] = ['ALL_SCOPES', 'TEXT_CONTENT', 'CORNER_RADIUS', 'WIDTH_HEIGHT', 'GAP'],
-            sizeArray: string[] = [],
-            scopeType = 'ALL_SCOPES',
-            scopeArray: string[] = [];
+      case 'gap_size':
+      case 'opacity':
+        getNumberVariable.forEach(float => {
+          const floatCollectionId = float.variableCollectionId,
+                floatCollectionName = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
+                floatName = float.name,
+                floatVariableId = float.id,
+                floatValue = float.valuesByMode[Object.keys(float.valuesByMode)[0]] as number;
+  
+              switch(key){
+                case 'height':
+                case "width":
+                case "minWidth":
+                case "maxWidth":
+                case "minHeight":
+                case "maxHeight":
+                  if(float.scopes.toString().includes('WIDTH_HEIGHT') || float.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                    })
+                  }
+                break;
 
-        if(figma.variables.getLocalVariables('FLOAT').length === 0){
-          result.setSuggestions(emptyFloatSuggestionArray);
-        } else {
-          numberVariable.forEach(element => {
-            if(element){
-              const scopeTypeActualy = element.scopes.toString();
-              scopeArray.push(scopeTypeActualy)
+                case "gap_size":
+                  if(float.scopes.toString().includes('GAP') || float.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName + ')'
+                    })
+                  }
+                break;
+                case "radius":
+                  if(float.scopes.toString().includes('CORNER_RADIUS') || float.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                    })
+                  }
+                break;
+                case 'opacity':
+                  if(float.scopes.toString().includes('OPACITY')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + '% --> (var--' + floatName + ') / ' + floatCollectionName
+                    })
+                  }
+                break;
+              }
+        });
+        getLibraryCollections().then(() => {
+          importedFloatVariable.forEach(importedFloat => {
+            const floatCollectionId = importedFloat.variableCollectionId,
+                  floatCollectionNameImported = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
+                  floatNameImported = importedFloat.name,
+                  floatVariableIdImported = importedFloat.id,
+                  floatValueImported = importedFloat.valuesByMode[Object.keys(importedFloat.valuesByMode)[0]] as number;
+
+            switch(key){
+              case 'height':
+              case "width":
+              case "minWidth":
+              case "maxWidth":
+              case "minHeight":
+              case "maxHeight":
+                if(importedFloat.scopes.toString().includes('WIDTH_HEIGHT') || importedFloat.scopes.toString().includes('ALL_SCOPES')){
+                  floatObjects.push({
+                    name: floatNameImported,
+                    value: floatValueImported,
+                    id: floatVariableIdImported,
+                    collectionName: floatCollectionNameImported,
+                    collectionId: floatCollectionId,
+                    location: 'Imported',
+                    searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                  })  
+                }
+              break;
+
+              case "gap_size":
+                if(importedFloat.scopes.toString().includes('GAP') || importedFloat.scopes.toString().includes('ALL_SCOPES')){
+                  floatObjects.push({
+                    name: floatNameImported,
+                    value: floatValueImported,
+                    id: floatVariableIdImported,
+                    collectionName: floatCollectionNameImported,
+                    collectionId: floatCollectionId,
+                    location: 'Imported',
+                    searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                  })
+                }
+              break;
+              case "radius":
+                if(importedFloat.scopes.toString().includes('CORNER_RADIUS') || importedFloat.scopes.toString().includes('ALL_SCOPES')){
+                  floatObjects.push({
+                    name: floatNameImported,
+                    value: floatValueImported,
+                    id: floatVariableIdImported,
+                    collectionName: floatCollectionNameImported,
+                    collectionId: floatCollectionId,
+                    location: 'Imported',
+                    searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                  })
+                }
+              break;
+
+              case 'opacity':
+                if(importedFloat.scopes.toString().includes('OPACITY')){
+                  floatObjects.push({
+                    name: floatNameImported,
+                    value: floatValueImported,
+                    id: floatVariableIdImported,
+                    collectionName: floatCollectionNameImported,
+                    collectionId: floatCollectionId,
+                    location: 'Imported',
+                    searchValue: floatValueImported + '% --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                  })
+                }
+                break;
             }
           });
 
-          switch(key){
-            case 'height':
-            case 'width':
-              scopeType = "WIDTH_HEIGHT";
-            break;
-  
-            case 'itemSpacing':
-              scopeType = 'GAP';
-            break;
-  
-            case 'radius':
-              scopeType = 'CORNER_RADIUS';
-            break;
-  
-            case 'characters':
-              scopeType = 'TEXT_CONTENT';
-            break;
-              
-            default:
-              scopeType = 'ALL_SCOPES';
-            break;
-          }
-
-          let conditionalSize = scopeArray.toString().includes(scopeType);
-          if(conditionalSize) {
-            numberVariable.forEach(element => {
-              if(element){
-                writeVariables(element, scopeType, sizeArray);
-              }
-            });
-          } else {      
-            numberVariable.forEach(element => {
-              if(element){
-                writeVariables(element, 'ALL_SCOPES', sizeArray, false);
-              }
-            });
-          }
-          result.setSuggestions(sizeArray.filter(s => s.includes(query)))
-        }
-      break;
-
-      case 'paddingSize':
-        if(figma.variables.getLocalVariables('FLOAT').length === 0){
-          result.setSuggestions(emptyFloatSuggestionArray);
-        } else {
-          let numberVariablePadding = figma.variables.getLocalVariables('FLOAT'),
-              paddingSizeArray: string[] = [];
-          numberVariablePadding.forEach(element => {
-            let firstModeValue = element.valuesByMode[Object.keys(element.valuesByMode)[0]] as Number;
-            let collectionId = element.variableCollectionId;          
-            let getCollectionPadding = figma.variables.getVariableCollectionById(collectionId);
-
-            if(getCollectionPadding){
-              let collectionName = getCollectionPadding.name;
-              paddingSizeArray.push(firstModeValue + 'px (' + element.name + ' - ' + collectionName + ')' );
-            }
+          floatObjects.sort((a, b) => a.value - b.value);
+          
+          const suggestionsFloat = floatObjects
+          .filter(s => s.searchValue.includes(query))
+          .map((s) => {              
+            return ({ 
+              name: s.searchValue,
+              data: {
+                value : s.value,
+                variableID: s.id,
+                collectionId: s.collectionId,
+                localOrImported: s.location,
+              }})
           });
-          result.setSuggestions(paddingSizeArray.filter(s => s.includes(query)))
-        }
+            
+          result.setSuggestions(suggestionsFloat);  
+        });
       break;
 
       case 'paddingPosition':
-        let paddingPositionArray: string[] = ['Top & bottom', 'Left & Right', 'Top', 'Bottom', 'Left', 'Right'];
-        const suggestionsPaddingPosition = paddingPositionArray
-            .filter(s => s.includes(query))
-            .map((s) => {
-              const sizeFixe = 16,
-                    littleSize = 4,
-                    bigSize = 14,
-                    littlePosition = 1,
-                    bigPosition = 11;
-              let paddingWidth = bigSize,
-                  paddingHeight = littleSize,
-                  paddingPositionX = littlePosition,
-                  paddingPositionY = littlePosition,
-                  paddingWidthSecond = bigSize,
-                  paddingHeightSecond = littleSize,
-                  paddingPositionXSecond = littlePosition,
-                  paddingPositionYSecond = bigPosition,
-                  visibilitySecond = "hidden";
+        const sizeFixe = 16,
+              littleSize = 4,
+              bigSize = 14,
+              littlePosition = 1,
+              bigPosition = 11;
+        let paddingPositionArray: any[] = [{
+          searchValue: 'Top & bottom',
+          devValue: ['paddingTop', 'paddingBottom'],
+          paddingWidth: bigSize,
+          paddingHeight: littleSize,
+          paddingPositionX: littlePosition,
+          paddingPositionY: littlePosition,
+          paddingWidthSecond: bigSize,
+          paddingHeightSecond: littleSize,
+          paddingPositionXSecond: littlePosition,
+          paddingPositionYSecond: bigPosition,
+          visibilitySecond: "visible"
+        },
+        {
+          searchValue: 'Left & Right',
+          devValue: ['paddingLeft', 'paddingRight'],
+          paddingWidth: littleSize,
+          paddingHeight: bigSize,
+          paddingPositionX: littlePosition,
+          paddingPositionY: littlePosition,
+          paddingWidthSecond: littleSize,
+          paddingHeightSecond: bigSize,
+          paddingPositionXSecond: bigPosition,
+          paddingPositionYSecond: littlePosition,
+          visibilitySecond: "visible"
+        },
+        {
+          searchValue: 'Top',
+          devValue: ['paddingTop'],
+          paddingWidth: bigSize,
+          paddingHeight: littleSize,
+          paddingPositionX: littlePosition,
+          paddingPositionY: littlePosition,
+          paddingWidthSecond: bigSize,
+          paddingHeightSecond: littleSize,
+          paddingPositionXSecond: littlePosition,
+          paddingPositionYSecond: bigPosition,
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Bottom',
+          devValue: ['paddingBottom'],
+          paddingWidth: bigSize,
+          paddingHeight: littleSize,
+          paddingPositionX: littlePosition,
+          paddingPositionY: bigPosition,
+          paddingWidthSecond: bigSize,
+          paddingHeightSecond: littleSize,
+          paddingPositionXSecond: littlePosition,
+          paddingPositionYSecond: bigPosition,
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Left',
+          devValue: ['paddingLeft'],
+          paddingWidth: littleSize,
+          paddingHeight: bigSize,
+          paddingPositionX: littlePosition,
+          paddingPositionY: littlePosition,
+          paddingWidthSecond: bigSize,
+          paddingHeightSecond: littleSize,
+          paddingPositionXSecond: littlePosition,
+          paddingPositionYSecond: bigPosition,
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Right',
+          devValue: ['paddingRight'],
+          paddingWidth: littleSize,
+          paddingHeight: bigSize,
+          paddingPositionX: bigPosition,
+          paddingPositionY: littlePosition,
+          paddingWidthSecond: bigSize,
+          paddingHeightSecond: littleSize,
+          paddingPositionXSecond: littlePosition,
+          paddingPositionYSecond: bigPosition,
+          visibilitySecond: "hidden"
+        }];
 
-                  switch(s){
-                    case 'Bottom':
-                      paddingPositionY = bigPosition;
-                    break;
-                    case 'Top & bottom':
-                      visibilitySecond = "visible";
-                    break;
-                    case 'Left':
-                      paddingWidth = littleSize;
-                      paddingHeight = bigSize;
-                    break;
-                    case 'Right':
-                      paddingWidth = littleSize;
-                      paddingHeight = bigSize;
-                      paddingPositionX = bigPosition;
-                    break;
-                    case 'Left & Right':
-                      paddingWidth = littleSize;
-                      paddingHeight = bigSize;
-                      paddingWidthSecond = littleSize;
-                      paddingHeightSecond = bigSize;
-                      paddingPositionXSecond = bigPosition;
-                      paddingPositionYSecond = littlePosition;
-                      visibilitySecond = "visible";
-                    break;
-                  }
-                  
-                  return ({ name: s, icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" x="0" y="0"/><rect width="${paddingWidth}" height="${paddingHeight}" x="${paddingPositionX}" y="${paddingPositionY}" rx="1" fill="#0D99FF"/><rect width="${paddingWidthSecond}" height="${paddingHeightSecond}" x="${paddingPositionXSecond}" y="${paddingPositionYSecond}" visibility="${visibilitySecond}" rx="1" fill="#0D99FF"/></svg>`});
+        const suggestionsPaddingPosition = paddingPositionArray
+            .filter(s => s.searchValue.includes(query))
+            .map((s) => {                  
+                  return ({
+                    name: s.searchValue, 
+                    icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" x="0" y="0"/>
+                              <rect width="${s.paddingWidth}" height="${s.paddingHeight}" x="${s.paddingPositionX}" y="${s.paddingPositionY}" rx="1" fill="#0D99FF"/>
+                              <rect width="${s.paddingWidthSecond}" height="${s.paddingHeightSecond}" x="${s.paddingPositionXSecond}" y="${s.paddingPositionYSecond}" visibility="${s.visibilitySecond}" rx="1" fill="#0D99FF"/>
+                            </svg>`,
+                    data: {
+                      value: s.devValue,
+                    }
+                  });
               });
             
         result.setSuggestions(suggestionsPaddingPosition);
       break;
 
+      case 'border_position':
+        const sizeFixeBorder = 16,
+              littleSizeBorder = 4,
+              bigSizeBorder = 14,
+              littlePositionBorder = 1,
+              bigPositionBorder = 11;
+        let borderPositionArray: any[] = [{
+          searchValue: 'All',
+          devValue: ['strokeTopWeight', 'strokeBottomWeight', 'strokeRightWeight' , 'strokeLeftWeight'],
+          paddingWidth: bigSizeBorder,
+          paddingHeight: littleSizeBorder,
+          paddingPositionX: littlePositionBorder,
+          paddingPositionY: littlePositionBorder,
+          paddingWidthSecond: bigSizeBorder,
+          paddingHeightSecond: littleSizeBorder,
+          paddingPositionXSecond: littlePositionBorder,
+          paddingPositionYSecond: bigPositionBorder,
+          visibilitySecond: "visible"
+        },{
+          searchValue: 'Top & bottom',
+          devValue: ['strokeTopWeight', 'strokeBottomWeight'],
+          paddingWidth: bigSizeBorder,
+          paddingHeight: littleSizeBorder,
+          paddingPositionX: littlePositionBorder,
+          paddingPositionY: littlePositionBorder,
+          paddingWidthSecond: bigSizeBorder,
+          paddingHeightSecond: littleSizeBorder,
+          paddingPositionXSecond: littlePositionBorder,
+          paddingPositionYSecond: bigPositionBorder,
+          visibilitySecond: "visible"
+        },
+        {
+          searchValue: 'Left & Right',
+          devValue: ['strokeLeftWeight', 'strokeRightWeight'],
+          paddingWidth: littleSizeBorder,
+          paddingHeight: bigSizeBorder,
+          paddingPositionX: littlePositionBorder,
+          paddingPositionY: littlePositionBorder,
+          paddingWidthSecond: littleSizeBorder,
+          paddingHeightSecond: bigSizeBorder,
+          paddingPositionXSecond: bigPositionBorder,
+          paddingPositionYSecond: littlePositionBorder,
+          visibilitySecond: "visible"
+        },
+        {
+          searchValue: 'Top',
+          devValue: ['strokeTopWeight'],
+          paddingWidth: bigSizeBorder,
+          paddingHeight: littleSizeBorder,
+          paddingPositionX: littlePositionBorder,
+          paddingPositionY: littlePositionBorder,
+          paddingWidthSecond: bigSizeBorder,
+          paddingHeightSecond: littleSizeBorder,
+          paddingPositionXSecond: littlePositionBorder,
+          paddingPositionYSecond: bigPositionBorder,
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Bottom',
+          devValue: ['strokeBottomWeight'],
+          paddingWidth: bigSizeBorder,
+          paddingHeight: littleSizeBorder,
+          paddingPositionX: littlePositionBorder,
+          paddingPositionY: bigPositionBorder,
+          paddingWidthSecond: bigSizeBorder,
+          paddingHeightSecond: littleSizeBorder,
+          paddingPositionXSecond: littlePositionBorder,
+          paddingPositionYSecond: bigPositionBorder,
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Left',
+          devValue: ['strokeLeftWeight'],
+          paddingWidth: littleSizeBorder,
+          paddingHeight: bigSizeBorder,
+          paddingPositionX: littlePositionBorder,
+          paddingPositionY: littlePositionBorder,
+          paddingWidthSecond: bigSizeBorder,
+          paddingHeightSecond: littleSizeBorder,
+          paddingPositionXSecond: littlePositionBorder,
+          paddingPositionYSecond: bigPositionBorder,
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Right',
+          devValue: ['strokeRightWeight'],
+          paddingWidth: littleSizeBorder,
+          paddingHeight: bigSizeBorder,
+          paddingPositionX: bigPositionBorder,
+          paddingPositionY: littlePositionBorder,
+          paddingWidthSecond: bigSizeBorder,
+          paddingHeightSecond: littleSizeBorder,
+          paddingPositionXSecond: littlePositionBorder,
+          paddingPositionYSecond: bigPositionBorder,
+          visibilitySecond: "hidden"
+        }];        
+
+        const suggestionsBorderPosition = borderPositionArray
+            .filter(s => s.searchValue.includes(query))
+            .map((s) => {                  
+                  return ({
+                    name: s.searchValue, 
+                    icon: `<svg width="${sizeFixeBorder}" height="${sizeFixeBorder}" viewBox="0 0 ${sizeFixeBorder} ${sizeFixeBorder}" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect width="${sizeFixeBorder}" height="${sizeFixeBorder}" fill="#ffffff" x="0" y="0"/>
+                              <rect width="${s.borderWidth}" height="${s.borderHeight}" x="${s.borderPositionX}" y="${s.borderPositionY}" rx="1" fill="#0D99FF"/>
+                              <rect width="${s.borderWidthSecond}" height="${s.borderHeightSecond}" x="${s.borderPositionXSecond}" y="${s.borderPositionYSecond}" visibility="${s.visibilitySecond}" rx="1" fill="#0D99FF"/>
+                            </svg>`,
+                    data: {
+                      value: s.devValue,
+                    }
+                  });
+              });
+            
+        result.setSuggestions(suggestionsBorderPosition);
+      break;
+
       case 'radiusPosition':
-        let radiusPositionArray: string[] = ['Top', 'Top left', 'Top right', 'Bottom', 'Bottom left', 'Bottom right', 'Left', 'Right'];
+        let radiusPositionArray: any[] = [{
+          searchValue: 'Top',
+          devValue: ['topLeftRadius', 'topRightRadius'],
+          xPosition: 0,
+          yPosition: 0,
+          height: 26,
+          width: 16
+        },
+        {
+          searchValue: 'Right',
+          devValue: ['bottomRightRadius', 'topRightRadius'],
+          xPosition: -10,
+          yPosition: 0,
+          height: 16,
+          width: 26
+        },
+        {
+          searchValue: 'Bottom',
+          devValue: ['bottomRightRadius', 'bottomLeftRadius'],
+          xPosition: 0,
+          yPosition: -10,
+          height: 26,
+          width: 16
+        },
+        {
+          searchValue: 'Left',
+          devValue: ['bottomLeftRadius', 'topLeftRadius'],
+          xPosition: 0,
+          yPosition: 0,
+          height: 16,
+          width: 26
+        },
+        {
+          searchValue: 'Top left',
+          devValue: ['topLeftRadius'],
+          xPosition: 0,
+          yPosition: 0,
+          height: 26,
+          width: 26
+        },
+        {
+          searchValue: 'Top Right',
+          devValue: ['topRightRadius'],
+          xPosition: -10,
+          yPosition: 0,
+          height: 26,
+          width: 26
+        },
+        {
+          searchValue: 'Bottom Right',
+          devValue: ['bottomRightRadius'],
+          xPosition: -10,
+          yPosition: -10,
+          height: 26,
+          width: 26
+        },
+        {
+          searchValue: 'Bottom Left',
+          devValue: ['bottomLeftRadius'],
+          xPosition: 0,
+          yPosition: -10,
+          height: 26,
+          width: 26
+        }];
         const suggestionsRadius = radiusPositionArray
-            .filter(s => s.includes(query))
+            .filter(s => s.searchValue.includes(query))
             .map((s) => {
               let sizeFixe = 16,
-                  radiusSize = 6,
-                  xPosition = 0,
-                  yPosition = 0,
-                  heightSize = 26,
-                  widthSize = 26;
+                  radiusSize = 6;
 
-              switch(s){
-                case 'Top':                
-                  widthSize = 16;
-                break;
-                case 'Top right':
-                  xPosition = -10;
-                break;
-                case 'Bottom':
-                  yPosition = -10;
-                  widthSize = 16;
-                break;
-                case 'Bottom left':
-                  yPosition = -10;
-                break;
-                case 'Bottom right':
-                  yPosition = -10;
-                  xPosition = -10;
-                break;
-                case 'Right':
-                  xPosition = -10;
-                  heightSize = 16;
-                break;
-                case 'Left':
-                  heightSize = 16;
-                break;
-              }
-
-              return ({ name: s, icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${widthSize}" height="${heightSize}" fill="#ffffff"  rx="${radiusSize}" x="${xPosition}" y="${yPosition}"/></svg>`});
+              return ({ 
+                name: s.searchValue,
+                icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="${s.width}" height="${s.height}" fill="#ffffff"  rx="${radiusSize}" x="${s.xPosition}" y="${s.yPosition}"/>
+                      </svg>`,
+                data: {
+                  value: s.devValue
+                }
+              });
             });
             
         result.setSuggestions(suggestionsRadius);
       break;
-      case 'gap_size':
-        if(figma.variables.getLocalVariables('FLOAT').length === 0){
-          result.setSuggestions(emptyFloatSuggestionArray);
-        } else {
-          let gapNumberVariables = figma.variables.getLocalVariables('FLOAT');
-          let gapCount = 0;
-          let gapSizeArray: string[] = [];
-
-          gapNumberVariables.forEach(numberVariable => {
-            if(numberVariable.scopes.toString().includes('GAP')){    
-              let gapValues = numberVariable.valuesByMode[Object.keys(numberVariable.valuesByMode)[0]].toString();
-              let gapCollectionId = numberVariable.variableCollectionId;
-              let gapCollectionName = figma.variables.getVariableCollectionById(gapCollectionId)?.name;
-                
-              gapSizeArray.push(gapValues + 'px (' + numberVariable.name + ' - ' + gapCollectionName + ')');
-              gapCount++;
-            }
-          });
-
-          if(gapCount == 0) {
-            gapNumberVariables.forEach(numberVariable => {
-              let gapValues = numberVariable.valuesByMode[Object.keys(numberVariable.valuesByMode)[0]].toString();
-              let gapCollectionId = numberVariable.variableCollectionId;
-              let gapCollectionName = figma.variables.getVariableCollectionById(gapCollectionId)?.name;
-
-              gapSizeArray.push(gapValues + 'px (' + numberVariable.name + ' - ' + gapCollectionName + ')');
-            });        
-          }
-          result.setSuggestions(gapSizeArray);
-        }
-      break;
       case 'character':
-        let textArray: string[] = [], 
-            myTextVariables = figma.variables.getLocalVariables('STRING');
-
-        myTextVariables.forEach(textVariable => {
-          let textValue = textVariable.valuesByMode[Object.keys(textVariable.valuesByMode)[0].toString()] as string,
-              textCollectionId = textVariable.variableCollectionId,
-              textCollectionName = figma.variables.getVariableCollectionById(textCollectionId);
-          
-          textArray.push(textValue + ' (' + textVariable.name + ' - ' + textCollectionName?.name + ')')
+        getTextVariable.forEach(text => {
+          const textCollectionId = text.variableCollectionId,
+                textCollectionName = figma.variables.getVariableCollectionById(textCollectionId)?.name,
+                textName = text.name,
+                textVariableId = text.id,
+                textString = text.valuesByMode[Object.keys(text.valuesByMode)[0]];                
+  
+          textObjects.push({
+            name: textName,
+            id: textVariableId,
+            collectionName: textCollectionName,
+            collectionId: textCollectionId,
+            searchValue: textString + ' --> var(--' + textName + ')  / ' + textCollectionName 
+          })        
         });
-        result.setSuggestions(textArray);
+
+        getLibraryCollections().then(() => {
+          importedTextVariable.forEach(importedtext => {
+            const textCollectionId = importedtext.variableCollectionId,
+              textCollectionNameImported = figma.variables.getVariableCollectionById(textCollectionId)?.name,
+              textNameImported = importedtext.name,
+              textVariableIdImported = importedtext.id,
+              textStringImported = importedtext.valuesByMode[Object.keys(importedtext.valuesByMode)[0]];
+
+            textObjects.push({
+              name: textNameImported,
+              id: textVariableIdImported,
+              collectionName: textCollectionNameImported,
+              collectionId: textCollectionId,
+              searchValue: textStringImported + ' --> var(--' + textNameImported + ')  / ' + textCollectionNameImported 
+            })  
+            
+          });     
+          const suggestionsColor = textObjects
+            .filter(s => s.searchValue.includes(query))
+            .map((s, index) => {
+              const currentText = textObjects[index]
+              return ({ 
+                name: s.searchValue,
+                data: {
+                  variableID: currentText.id,
+                  collectionId: currentText.collectionId,
+                }})
+            });
+            
+        result.setSuggestions(suggestionsColor);     
+        });
       break;
     }
   // }
@@ -432,15 +746,15 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
 
     switch(command) {
       case 'color':
-        let selectedVariable = figma.variables.getVariableById(key.variableID);
+        let selectedColorVariable = figma.variables.getVariableById(key.variableID);
         if(mySelection.length > 0){          
           mySelection.forEach(selectedObject => {
-            if ('fills' in selectedObject && selectedVariable) {
+            if ('fills' in selectedObject && selectedColorVariable) {
               if(selectedObject.fills.toLocaleString() === ""){
                 selectedObject.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
               }
               const fillsCopy = clone(selectedObject.fills);
-              fillsCopy[0] = figma.variables.setBoundVariableForPaint(fillsCopy[0], 'color', selectedVariable)
+              fillsCopy[0] = figma.variables.setBoundVariableForPaint(fillsCopy[0], 'color', selectedColorVariable)
               selectedObject.fills = fillsCopy
             }
           });
@@ -462,12 +776,17 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
               const strokesCopy = clone(selectedObject.strokes);
               strokesCopy[0] = figma.variables.setBoundVariableForPaint(strokesCopy[0], 'color', currentColorVariable)
               selectedObject.strokes = strokesCopy
-              if(parameters['border_width'] != undefined){             
-                selectedObject.strokeWeight = parameters['border_width'].value;
+              if(parameters['border_width'] != undefined){
+                if(parameters['border_position'] != undefined){
+                  parameters['border_position'].value.forEach((borderPosition: any) => {
+                    selectedObject.setBoundVariable(borderPosition, parameters['border_width'].variableID)
+                  });
+                } else {
+                  selectedObject.setBoundVariable('strokeWeight', parameters['border_width'].variableID);
+                }    
               }
             }
           });
-
         } else {
           figma.notify('Please, select an item')
         }
@@ -479,63 +798,35 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
       case 'maxWidth':
       case 'minHeight':
       case 'maxHeight':
-        if(mySelection.length > 0){
-          mySelection.forEach(selectedObject => {            
-            myNumberVariables.forEach(numberElement => {
-              if(key.toLowerCase().includes(numberElement.name.toLowerCase())){
-                selectedObject.setBoundVariable(command, numberElement.id);
-              }
-            });
+      let selectedfloatVariable = figma.variables.getVariableById(key.variableID);
+        if(mySelection.length > 0){          
+          mySelection.forEach(selectedObject => {
+            if (selectedfloatVariable) {
+              selectedObject.setBoundVariable(command, selectedfloatVariable.id);
+            }
           });
         } else {
-          figma.notify('Please select an item')
+          figma.notify('Please, select an item')
         }
       break;
 
       case 'padding':
-        const paddingTypeArray: string[] = ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'];
-        let complexPaddingParametresKey = Object.keys(parameters),
-            parametersPaddingLenght = complexPaddingParametresKey.length;                        
+        const paddingSizeVariableID = parameters['paddingSize'].variableID as string;
+                                
         if(mySelection.length > 0){
           mySelection.forEach(selectedObject => {
             if(mySelection[0].type == 'FRAME' && mySelection[0].layoutMode != 'NONE'){
-              myNumberVariables.forEach(floatElement => {
-                let complexPaddingParametre = parameters[complexPaddingParametresKey[0]].toLowerCase();
-                if(complexPaddingParametre.includes(floatElement.name.toLowerCase())){
-                  paddingTypeArray.forEach(paddingType => {
-                    if(parametersPaddingLenght == 1){
-                      if(paddingType == "paddingLeft" || paddingType == "paddingRight" || paddingType == "paddingBottom" || paddingType == "paddingTop"){
-                        selectedObject.setBoundVariable(paddingType, floatElement.id);
-                      }
-                    } else if(parametersPaddingLenght == 2){
-                      switch(parameters[complexPaddingParametresKey[1]]){
-                        case 'Top & bottom':
-                          if(paddingType == "paddingBottom" || paddingType == "paddingTop"){
-                            selectedObject.setBoundVariable(paddingType, floatElement.id);
-                          }
-                        break;
-                        case 'Left & Right':
-                          if(paddingType == "paddingLeft" || paddingType == "paddingRight"){
-                            selectedObject.setBoundVariable(paddingType, floatElement.id);
-                          }
-                        break;
-                        case 'Right':
-                            selectedObject.setBoundVariable('paddingRight', floatElement.id);
-                        break;
-                        case 'Left':
-                            selectedObject.setBoundVariable('paddingLeft', floatElement.id);
-                        break;
-                        case 'Bottom':
-                            selectedObject.setBoundVariable('paddingBottom', floatElement.id);
-                        break;
-                        case 'Top':
-                            selectedObject.setBoundVariable('paddingTop', floatElement.id);
-                        break;
-                      } 
-                    }
-                  });
-                }
-              });  
+              if(parameters['paddingPosition']){
+                let paddingPositionParameter = parameters['paddingPosition'].value;
+                paddingPositionParameter.forEach((paddingPosition: any) => {
+                  selectedObject.setBoundVariable(paddingPosition, paddingSizeVariableID);
+                });
+              } else {
+                selectedObject.setBoundVariable('paddingBottom', paddingSizeVariableID);
+                selectedObject.setBoundVariable('paddingTop', paddingSizeVariableID);
+                selectedObject.setBoundVariable('paddingRight', paddingSizeVariableID);
+                selectedObject.setBoundVariable('paddingLeft', paddingSizeVariableID);
+              }
             } else {
               figma.notify("Auto layout required for padding... Sorry")
             }     
@@ -543,54 +834,22 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
         } else {
           figma.notify('Please select an item')
         }
-        
       break;
 
       case 'radius':
-        let radiusLoopCount = 0;
+        const radiusSizeVariableID = parameters['radius'].variableID as string;
+        // let radiusLoopCount = 0;
         if(figma.currentPage.selection.length > 0){
           mySelection.forEach(selectedObject => {
-            if(selectedObject){
-              const maSelection: RectangleNode = figma.currentPage.selection[radiusLoopCount] as RectangleNode;
-              myNumberVariables.forEach(numberVariable => {
-                if(key.toLowerCase().includes(numberVariable.name.toLocaleLowerCase())){
-                  const radiusPositionsArray = {
-                    'Top': ['topLeftRadius', 'topRightRadius'],
-                    'Top left': ['topLeftRadius'],
-                    'Top right': ['topRightRadius'],
-                    'Bottom': ['bottomLeftRadius', 'bottomRightRadius'],
-                    'Bottom left': ['bottomLeftRadius'],
-                    'Bottom right': ['bottomRightRadius'],
-                    'Left': ['topLeftRadius', 'bottomLeftRadius'],
-                    'Right': ['topRightRadius', 'bottomRightRadius'],
-                  } as any;
-
-                  switch(parameters.radiusPosition){
-                    case 'Top':
-                    case 'Top left':
-                    case 'Top right':
-                    case 'Bottom':
-                    case 'Bottom left':
-                    case 'Bottom right':
-                    case 'Left':
-                    case 'Right':
-                      let radiusPositionString = parameters.radiusPosition.toString();
-
-                      radiusPositionsArray[radiusPositionString].forEach((position: any) => {
-                        maSelection.setBoundVariable(position, numberVariable.id);
-                      });
-                    break;
-  
-                    default:
-                      maSelection.setBoundVariable('topLeftRadius', numberVariable.id);
-                      maSelection.setBoundVariable('topRightRadius', numberVariable.id);
-                      maSelection.setBoundVariable('bottomLeftRadius', numberVariable.id);
-                      maSelection.setBoundVariable('bottomRightRadius', numberVariable.id);
-                    break;
-                  }
-                }
+            if(parameters['radiusPosition']){
+              parameters['radiusPosition'].value.forEach((radiusPosition: any) => {
+                selectedObject.setBoundVariable(radiusPosition, radiusSizeVariableID);
               });
-              radiusLoopCount++;
+            } else {
+              selectedObject.setBoundVariable('bottomLeftRadius' , radiusSizeVariableID)
+              selectedObject.setBoundVariable('bottomRightRadius' , radiusSizeVariableID)
+              selectedObject.setBoundVariable('topLeftRadius' , radiusSizeVariableID)
+              selectedObject.setBoundVariable('topRightRadius' , radiusSizeVariableID)
             }
           });
         } else {
@@ -598,35 +857,35 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
         }
       break;
       case 'gap':
-        let parameterKey = parameters[Object.keys(parameters).toString()];
+        let parameterKey = parameters[Object.keys(parameters).toString()];        
         if(mySelection.length > 0){
           mySelection.forEach(selectedObject => {
             if(mySelection[0].type == 'FRAME' && mySelection[0].layoutMode != 'NONE' && 'layoutMode' in selectedObject){
-              myNumberVariables.forEach(numberVariables => {
-                if(parameterKey.toLowerCase().includes(numberVariables.name.toLowerCase())){
-                  selectedObject.setBoundVariable('itemSpacing', numberVariables.id);
-                  selectedObject.setBoundVariable('counterAxisSpacing', numberVariables.id);
-                }
-              });
+              selectedObject.setBoundVariable("itemSpacing", parameterKey.variableID)
+              selectedObject.setBoundVariable("counterAxisSpacing", parameterKey.variableID)
             }
           });
         } else {
           figma.notify('Please select an item')
         }
       break;
-      case 'character':
+      case 'character':        
         if(mySelection.length > 0){
           mySelection.forEach(selectedObject => {
-            myStringVariables.forEach(stringVariable => {
-              let textValueByMode = stringVariable.valuesByMode[Object.keys(stringVariable.valuesByMode)[0]].toString();
-              if(key.toLowerCase().includes(textValueByMode.toLocaleLowerCase())){
-                if(selectedObject.type == 'TEXT'){
-                  selectedObject.setBoundVariable('characters', stringVariable.id);
-                } else {
-                  figma.notify('Please select a text layer')
-                }
-              }
-            });
+            if(selectedObject.type == 'TEXT'){
+              selectedObject.setBoundVariable('characters', parameters[command].variableID)
+            } else {
+              figma.notify('Please select a text layer')
+            }
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+      break;
+      case 'opacity':
+        if(mySelection.length > 0){
+          mySelection.forEach(selectedObject => {
+              selectedObject.setBoundVariable('opacity', parameters[command].variableID)
           });
         } else {
           figma.notify('Please select an item')
