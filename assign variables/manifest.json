@@ -177,6 +177,81 @@
           "description": "Choose your opacity (variable)"
         }
       ]
+    },
+    {
+      "name": "Layer blur",
+      "command": "layerBlur",
+      "parameters": [
+        {
+          "name": "Size",
+          "key": "layerBlurSize",
+          "description": "Choose your blur size (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Box shadow",
+      "command": "dropShadow",
+      "parameters": [
+        {
+          "name": "X",
+          "key": "shadowX",
+          "description": "Choose your x position (variable)"
+        },
+        {
+          "name": "Y",
+          "key": "shadowY",
+          "description": "Choose your y position (variable)"
+        },
+        {
+          "name": "Blur",
+          "key": "shadowBlur",
+          "description": "Choose your blur size (variable)"
+        },
+        {
+          "name": "Color",
+          "key": "shadowColor",
+          "description": "Choose your blur size (variable)"
+        },
+        {
+          "name": "Spread",
+          "key": "shadowSpread",
+          "description": "Choose your spread size (variable)",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Inner shadow",
+      "command": "innerShadow",
+      "parameters": [
+        {
+          "name": "X",
+          "key": "shadowX",
+          "description": "Choose your x position (variable)"
+        },
+        {
+          "name": "Y",
+          "key": "shadowY",
+          "description": "Choose your y position (variable)"
+        },
+        {
+          "name": "Blur",
+          "key": "shadowBlur",
+          "description": "Choose your blur size (variable)"
+        },
+        {
+          "name": "Color",
+          "key": "shadowColor",
+          "description": "Choose your blur size (variable)"
+        },
+        {
+          "name": "Spread",
+          "key": "shadowSpread",
+          "description": "Choose your spread size (variable)",
+          "optional": true
+        }
+      ]
     }
   ],
   "networkAccess": {

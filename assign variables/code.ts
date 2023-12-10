@@ -50,19 +50,17 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
     switch(key){
       case 'color':
       case 'border_color':
+      case 'shadowColor':
 
       getColorVariable.forEach(color => {
         const colorCollectionId = color.variableCollectionId,
               colorCollectionName = figma.variables.getVariableCollectionById(colorCollectionId)?.name,
               colorName = color.name,
               colorVariableId = color.id,
-              // colorValue = color.valuesByMode,
-              // colorFirstValue = colorValue[Object.keys(colorValue)[0]] as RGBA,
               colorHexValue = rgbaToHex(color.valuesByMode[Object.keys(color.valuesByMode)[0]] as RGBA);
 
               colorObjects.push({
                 name: colorName,
-                // rgbaValue: colorFirstValue,
                 hexValue: colorHexValue,
                 id: colorVariableId,
                 collectionName: colorCollectionName,
@@ -84,13 +82,10 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                 colorCollectionNameImported = figma.variables.getVariableCollectionById(colorCollectionId)?.name,
                 colorNameImported = importedColor.name,
                 colorVariableIdImported = importedColor.id,
-                // colorValueImported = importedColor.valuesByMode,
-                // colorFirstValueImported = colorValueImported[Object.keys(colorValueImported)[0]] as RGBA,
                 colorHexValueImported = rgbaToHex(importedColor.valuesByMode[Object.keys(importedColor.valuesByMode)[0]] as RGBA);
 
               colorObjects.push({
                 name: colorNameImported,
-                // rgbaValue: colorFirstValueImported,
                 hexValue: colorHexValueImported,
                 id: colorVariableIdImported,
                 collectionName: colorCollectionNameImported,
@@ -102,15 +97,14 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
             });     
             const suggestionsColor = colorObjects
               .filter(s => s.searchValue.includes(query))
-              .map((s, index) => {
-                const currentColor = colorObjects[index]
+              .map((s) => {
                 return ({ 
                   name: s.searchValue,
-                  icon: `<svg width="$size$" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="${currentColor.hexValue}" /></svg>`,
+                  icon: `<svg width="$size$" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="${s.hexValue}" /></svg>`,
                   data: {
-                    variableID: currentColor.id,
-                    collectionId: currentColor.collectionId,
-                    localOrImported: currentColor.location,
+                    variableID: s.id,
+                    collectionId: s.collectionId,
+                    localOrImported: s.location,
                   }})
               });
               
@@ -119,7 +113,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
         // }
       break;
 
-      case 'border_width':
+      case 'border_width'://mettre la condition pour qu'il s'affhiche que les strokes
       case 'paddingSize':
         getNumberVariable.forEach(float => {
           const floatCollectionId = float.variableCollectionId,
@@ -221,6 +215,11 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
       case 'maxHeight':
       case 'gap_size':
       case 'opacity':
+      case 'layerBlurSize':
+      case 'shadowBlur':
+      case 'shadowX':
+      case 'shadowY':
+      case 'shadowSpread':
         getNumberVariable.forEach(float => {
           const floatCollectionId = float.variableCollectionId,
                 floatCollectionName = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
@@ -284,6 +283,23 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       collectionId: floatCollectionId,
                       location: 'Local',
                       searchValue: floatValue + '% --> (var--' + floatName + ') / ' + floatCollectionName
+                    })
+                  }
+                break;
+                case 'layerBlurSize':
+                case 'shadowBlur':
+                case 'shadowX':
+                case 'shadowY':
+                case 'shadowSpread':
+                  if(float.scopes.toString().includes('EFFECT_FLOAT') || float.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
                     })
                   }
                 break;
@@ -356,6 +372,23 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     searchValue: floatValueImported + '% --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
                   })
                 }
+                break;
+                case 'layerBlurSize':
+                case 'shadowBlur':
+                case 'shadowX':
+                case 'shadowY':
+                case 'shadowSpread':
+                  if(importedFloat.scopes.toString().includes('EFFECT_FLOAT') || importedFloat.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatNameImported,
+                      value: floatValueImported,
+                      id: floatVariableIdImported,
+                      collectionName: floatCollectionNameImported,
+                      collectionId: floatCollectionId,
+                      location: 'Imported',
+                      searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                    })
+                  }
                 break;
             }
           });
@@ -484,6 +517,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
       break;
 
       case 'border_position':
+        // L'applicaiton ne marche pas 
         const sizeFixeBorder = 16,
               littleSizeBorder = 4,
               bigSizeBorder = 14,
@@ -492,93 +526,110 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
         let borderPositionArray: any[] = [{
           searchValue: 'All',
           devValue: ['strokeTopWeight', 'strokeBottomWeight', 'strokeRightWeight' , 'strokeLeftWeight'],
-          paddingWidth: bigSizeBorder,
-          paddingHeight: littleSizeBorder,
-          paddingPositionX: littlePositionBorder,
-          paddingPositionY: littlePositionBorder,
-          paddingWidthSecond: bigSizeBorder,
-          paddingHeightSecond: littleSizeBorder,
-          paddingPositionXSecond: littlePositionBorder,
-          paddingPositionYSecond: bigPositionBorder,
-          visibilitySecond: "visible"
+          borderWidth: sizeFixeBorder,
+          borderHeight: sizeFixeBorder,
+          borderPositionX: 0,
+          borderPositionY: 0,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth: 6,
+          svgBackground: '#FFFFFF',
+          visibilitySecond: "hidden"
         },{
           searchValue: 'Top & bottom',
           devValue: ['strokeTopWeight', 'strokeBottomWeight'],
-          paddingWidth: bigSizeBorder,
-          paddingHeight: littleSizeBorder,
-          paddingPositionX: littlePositionBorder,
-          paddingPositionY: littlePositionBorder,
-          paddingWidthSecond: bigSizeBorder,
-          paddingHeightSecond: littleSizeBorder,
-          paddingPositionXSecond: littlePositionBorder,
-          paddingPositionYSecond: bigPositionBorder,
+          borderWidth: bigSizeBorder,
+          borderHeight: littleSizeBorder,
+          borderPositionX: littlePositionBorder,
+          borderPositionY: littlePositionBorder,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
           visibilitySecond: "visible"
         },
         {
           searchValue: 'Left & Right',
           devValue: ['strokeLeftWeight', 'strokeRightWeight'],
-          paddingWidth: littleSizeBorder,
-          paddingHeight: bigSizeBorder,
-          paddingPositionX: littlePositionBorder,
-          paddingPositionY: littlePositionBorder,
-          paddingWidthSecond: littleSizeBorder,
-          paddingHeightSecond: bigSizeBorder,
-          paddingPositionXSecond: bigPositionBorder,
-          paddingPositionYSecond: littlePositionBorder,
+          borderWidth: littleSizeBorder,
+          borderHeight: bigSizeBorder,
+          borderPositionX: littlePositionBorder,
+          borderPositionY: littlePositionBorder,
+          borderWidthSecond: littleSizeBorder,
+          borderHeightSecond: bigSizeBorder,
+          borderPositionXSecond: bigPositionBorder,
+          borderPositionYSecond: littlePositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
           visibilitySecond: "visible"
         },
         {
           searchValue: 'Top',
           devValue: ['strokeTopWeight'],
-          paddingWidth: bigSizeBorder,
-          paddingHeight: littleSizeBorder,
-          paddingPositionX: littlePositionBorder,
-          paddingPositionY: littlePositionBorder,
-          paddingWidthSecond: bigSizeBorder,
-          paddingHeightSecond: littleSizeBorder,
-          paddingPositionXSecond: littlePositionBorder,
-          paddingPositionYSecond: bigPositionBorder,
+          borderWidth: bigSizeBorder,
+          borderHeight: littleSizeBorder,
+          borderPositionX: littlePositionBorder,
+          borderPositionY: littlePositionBorder,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
           visibilitySecond: "hidden"
         },
         {
           searchValue: 'Bottom',
           devValue: ['strokeBottomWeight'],
-          paddingWidth: bigSizeBorder,
-          paddingHeight: littleSizeBorder,
-          paddingPositionX: littlePositionBorder,
-          paddingPositionY: bigPositionBorder,
-          paddingWidthSecond: bigSizeBorder,
-          paddingHeightSecond: littleSizeBorder,
-          paddingPositionXSecond: littlePositionBorder,
-          paddingPositionYSecond: bigPositionBorder,
+          borderWidth: bigSizeBorder,
+          borderHeight: littleSizeBorder,
+          borderPositionX: littlePositionBorder,
+          borderPositionY: bigPositionBorder,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
           visibilitySecond: "hidden"
         },
         {
           searchValue: 'Left',
           devValue: ['strokeLeftWeight'],
-          paddingWidth: littleSizeBorder,
-          paddingHeight: bigSizeBorder,
-          paddingPositionX: littlePositionBorder,
-          paddingPositionY: littlePositionBorder,
-          paddingWidthSecond: bigSizeBorder,
-          paddingHeightSecond: littleSizeBorder,
-          paddingPositionXSecond: littlePositionBorder,
-          paddingPositionYSecond: bigPositionBorder,
+          borderWidth: littleSizeBorder,
+          borderHeight: bigSizeBorder,
+          borderPositionX: littlePositionBorder,
+          borderPositionY: littlePositionBorder,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
           visibilitySecond: "hidden"
         },
         {
           searchValue: 'Right',
           devValue: ['strokeRightWeight'],
-          paddingWidth: littleSizeBorder,
-          paddingHeight: bigSizeBorder,
-          paddingPositionX: bigPositionBorder,
-          paddingPositionY: littlePositionBorder,
-          paddingWidthSecond: bigSizeBorder,
-          paddingHeightSecond: littleSizeBorder,
-          paddingPositionXSecond: littlePositionBorder,
-          paddingPositionYSecond: bigPositionBorder,
+          borderWidth: littleSizeBorder,
+          borderHeight: bigSizeBorder,
+          borderPositionX: bigPositionBorder,
+          borderPositionY: littlePositionBorder,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
           visibilitySecond: "hidden"
         }];        
+
+        // L'affichage est tout blanc
+        // ne s'applique que en full
 
         const suggestionsBorderPosition = borderPositionArray
             .filter(s => s.searchValue.includes(query))
@@ -587,7 +638,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     name: s.searchValue, 
                     icon: `<svg width="${sizeFixeBorder}" height="${sizeFixeBorder}" viewBox="0 0 ${sizeFixeBorder} ${sizeFixeBorder}" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <rect width="${sizeFixeBorder}" height="${sizeFixeBorder}" fill="#ffffff" x="0" y="0"/>
-                              <rect width="${s.borderWidth}" height="${s.borderHeight}" x="${s.borderPositionX}" y="${s.borderPositionY}" rx="1" fill="#0D99FF"/>
+                              <rect width="${s.borderWidth}" height="${s.borderHeight}" x="${s.borderPositionX}" y="${s.borderPositionY}" rx="1" fill="${s.svgBackground}" stroke="#0D99FF" stroke-width="${s.strokeWidth}"/>
                               <rect width="${s.borderWidthSecond}" height="${s.borderHeightSecond}" x="${s.borderPositionXSecond}" y="${s.borderPositionYSecond}" visibility="${s.visibilitySecond}" rx="1" fill="#0D99FF"/>
                             </svg>`,
                     data: {
@@ -595,6 +646,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     }
                   });
               });
+            console.log(suggestionsBorderPosition[1].icon);
             
         result.setSuggestions(suggestionsBorderPosition);
       break;
@@ -774,6 +826,7 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
                 selectedObject.strokes = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
               }
               const strokesCopy = clone(selectedObject.strokes);
+              
               strokesCopy[0] = figma.variables.setBoundVariableForPaint(strokesCopy[0], 'color', currentColorVariable)
               selectedObject.strokes = strokesCopy
               if(parameters['border_width'] != undefined){
@@ -891,6 +944,199 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
           figma.notify('Please select an item')
         }
       break;
+      case 'layerBlur':
+        // Fonctionne pour l'ajout mais pas pour la modification
+        let currentBlurSizeVariable = figma.variables.getVariableById(parameters['layerBlurSize'].variableID),
+            blurEffectsCounter = 0;
+
+        if(mySelection.length > 0){
+          mySelection.forEach(blur => {            
+            if('effects' in blur){
+              // detecter la longueur de effect car en l'état il sera toujours à 0 car le blur effect est resset, il sera toujours à zero car un seul blur est autorisé, mais il ne faut pas reset tout l'effet, peu etre le cloner avant si blur effect le supprimer et ajouter les effet avant dan le tableau
+              if(blurEffectsCounter == 0){
+                  blur.effects = [{ 
+                  type: 'LAYER_BLUR',
+                  radius: 10,
+                  visible: true,
+                  boundVariables: {
+                    radius : {
+                      id: parameters['layerBlurSize'].variableID,
+                      type: 'VARIABLE_ALIAS'
+                    }
+                  }
+                }];
+              }
+
+              let effectsCopy = clone(blur.effects);
+              effectsCopy.forEach((currentEffectCopy: any) => {
+                if(currentEffectCopy.type == 'LAYER_BLUR'){                  
+                  if(currentBlurSizeVariable){
+                    effectsCopy[blurEffectsCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[blurEffectsCounter], 'radius', currentBlurSizeVariable)
+                  }
+                  blur.effects = effectsCopy;                  
+                  blurEffectsCounter++;
+                }
+              });
+            }          
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+      break;
+      case 'dropShadow':
+      case 'innerShadow':
+        let currentShadowXVariable = figma.variables.getVariableById(parameters['shadowX'].variableID),
+            currentShadowYVariable = figma.variables.getVariableById(parameters['shadowY'].variableID),
+            currentShadowBlurVariable = figma.variables.getVariableById(parameters['shadowBlur'].variableID),
+            currentShadowColorVariable = figma.variables.getVariableById(parameters['shadowColor'].variableID);
+
+        if(mySelection.length > 0){
+          mySelection.forEach(shadow => {
+            if('effects' in shadow){
+              let shadowArrayCounter = 0;
+              
+              let globalCounter = effectsCounter(shadow);
+              switch(command){
+                case 'dropShadow':
+                  if(globalCounter.dropShadow == 0){
+                    let effectsArray = shadow.effects,
+                        temporaryCopyEffects = [...effectsArray];
+                    
+                    temporaryCopyEffects.forEach((temporaryCopy, index) => {                  
+                      switch(temporaryCopy.type){
+                        case 'LAYER_BLUR':
+                        case 'BACKGROUND_BLUR':
+                          let temporaryBoundVariable = {...temporaryCopy};
+    
+                          if(temporaryCopy.boundVariables){
+                            for(let radiusKey in temporaryCopy.boundVariables){
+                              if(radiusKey == 'radius'){
+                                  let radiusCopy = temporaryCopy.boundVariables[radiusKey];
+    
+                                if(radiusCopy?.id){
+                                    temporaryBoundVariable.boundVariables = {radius: {type: radiusCopy?.type || 'VARIABLE_ALIAS', id: radiusCopy?.id}};
+                                }
+                                
+                                temporaryCopy = temporaryBoundVariable;
+                                temporaryCopyEffects[index] = temporaryCopy;
+                              }
+                            }
+                          }
+                        break;
+                      }
+                    });
+    
+                    shadow.effects = temporaryCopyEffects;
+    
+                    temporaryCopyEffects.push({
+                      type: 'DROP_SHADOW',
+                      radius: 10,
+                      offset: { x: 4, y: 4 },
+                      spread: 0,
+                      color: { r: 0, g: 0, b: 0, a: 0.25 },
+                      visible: true,
+                      blendMode: 'NORMAL', 
+                      boundVariables: {}
+                    })
+                    shadow.effects = temporaryCopyEffects;
+                  }
+                break;
+                case 'innerShadow':
+                  if(globalCounter.innerShadow == 0){
+                    let effectsArray = shadow.effects,
+                        temporaryCopyEffects = [...effectsArray];
+                    
+                    temporaryCopyEffects.forEach((temporaryCopy, index) => {                  
+                      switch(temporaryCopy.type){
+                        case 'LAYER_BLUR':
+                        case 'BACKGROUND_BLUR':
+                          let temporaryBoundVariable = {...temporaryCopy};
+    
+                          if(temporaryCopy.boundVariables){
+                            for(let radiusKey in temporaryCopy.boundVariables){
+                              if(radiusKey == 'radius'){
+                                  let radiusCopy = temporaryCopy.boundVariables[radiusKey];
+    
+                                if(radiusCopy?.id){
+                                    temporaryBoundVariable.boundVariables = {radius: {type: radiusCopy?.type || 'VARIABLE_ALIAS', id: radiusCopy?.id}};
+                                }
+                                
+                                temporaryCopy = temporaryBoundVariable;
+                                temporaryCopyEffects[index] = temporaryCopy;
+                              }
+                            }
+                          }
+                        break;
+                      }
+                    });
+    
+                    shadow.effects = temporaryCopyEffects;
+    
+                    temporaryCopyEffects.push({
+                      type: 'INNER_SHADOW',
+                      radius: 10,
+                      offset: { x: 4, y: 4 },
+                      spread: 0,
+                      color: { r: 0, g: 0, b: 0, a: 0.25 },
+                      visible: true,
+                      blendMode: 'NORMAL', 
+                      boundVariables: {}
+                    })
+                    shadow.effects = temporaryCopyEffects;
+                  }
+                break;
+              }
+              
+
+              let effectsCopy = clone(shadow.effects);              
+
+              effectsCopy.forEach((currentEffectCopy: any) => {
+                switch(command){
+                  case 'dropShadow':
+                    if(currentEffectCopy.type == 'DROP_SHADOW'){
+                      if(currentShadowBlurVariable && currentShadowXVariable && currentShadowYVariable && currentShadowColorVariable != undefined){
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'radius', currentShadowBlurVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'offsetX', currentShadowXVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'offsetY', currentShadowYVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'color', currentShadowColorVariable)
+                      }
+                      if(parameters['shadowSpread'] != undefined){
+                        let currentShadowSpreadVariable = figma.variables.getVariableById(parameters['shadowSpread'].variableID)
+                        if(currentShadowSpreadVariable){                      
+                          effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'spread', currentShadowSpreadVariable); 
+                        }
+                      }
+                      shadow.effects = effectsCopy;                  
+                    }
+                  break;
+
+                  case 'innerShadow':
+                    if(currentEffectCopy.type == 'INNER_SHADOW'){
+                      if(currentShadowBlurVariable && currentShadowXVariable && currentShadowYVariable && currentShadowColorVariable != undefined){
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'radius', currentShadowBlurVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'offsetX', currentShadowXVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'offsetY', currentShadowYVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'color', currentShadowColorVariable)
+                      }
+                      if(parameters['shadowSpread'] != undefined){
+                        let currentShadowSpreadVariable = figma.variables.getVariableById(parameters['shadowSpread'].variableID)
+                        if(currentShadowSpreadVariable){                      
+                          effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'spread', currentShadowSpreadVariable); 
+                        }
+                      }
+                      shadow.effects = effectsCopy;                  
+                    }
+                  break;
+                }
+                
+                shadowArrayCounter++;
+              });
+            }          
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+      break;
     }
   }
   figma.closePlugin()
@@ -925,4 +1171,38 @@ function writeVariables(contextualElement: any, numberScoping: string, myArray: 
   if(!checkCondition){
     myArray.push(variableValueNumber + 'px (' + contextualElement?.name + ' - ' + getNumberCollectionInfo?.name + ')');
   }
+}
+
+function effectsCounter(currentItem: any){
+  let dropShadowCounter = 0,
+      layerBlurCounter = 0,
+      backgroundBlurCounter = 0,
+      innerShadowCounter = 0;
+
+  currentItem.effects.forEach((effect: any) => {
+    switch(effect.type){
+      case 'DROP_SHADOW':
+        dropShadowCounter++;
+      break;
+
+      case 'LAYER_BLUR':
+        layerBlurCounter++;
+      break;
+
+      case 'BACKGROUND_BLUR':
+        backgroundBlurCounter++;
+      break;
+
+      case 'INNER_SHADOW':
+        innerShadowCounter++;
+      break;
+    }
+  });
+  let globalCounter = {
+    dropShadow: dropShadowCounter,
+    layerBlur: layerBlurCounter,
+    backgroundBlur: backgroundBlurCounter,
+    innerShadow: innerShadowCounter
+  }
+  return globalCounter;
 }
