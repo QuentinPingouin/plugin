@@ -216,6 +216,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
       case 'gap_size':
       case 'opacity':
       case 'layerBlurSize':
+      case 'backgroundBlurSize':
       case 'shadowBlur':
       case 'shadowX':
       case 'shadowY':
@@ -287,6 +288,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                   }
                 break;
                 case 'layerBlurSize':
+                case 'backgroundBlurSize':
                 case 'shadowBlur':
                 case 'shadowX':
                 case 'shadowY':
@@ -374,6 +376,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                 }
                 break;
                 case 'layerBlurSize':
+                case 'backgroundBlurSize':
                 case 'shadowBlur':
                 case 'shadowX':
                 case 'shadowY':
@@ -628,9 +631,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
           visibilitySecond: "hidden"
         }];        
 
-        // L'affichage est tout blanc
         // ne s'applique que en full
-
         const suggestionsBorderPosition = borderPositionArray
             .filter(s => s.searchValue.includes(query))
             .map((s) => {                  
@@ -646,7 +647,6 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     }
                   });
               });
-            console.log(suggestionsBorderPosition[1].icon);
             
         result.setSuggestions(suggestionsBorderPosition);
       break;
@@ -944,45 +944,45 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
           figma.notify('Please select an item')
         }
       break;
-      case 'layerBlur':
-        // Fonctionne pour l'ajout mais pas pour la modification
-        let currentBlurSizeVariable = figma.variables.getVariableById(parameters['layerBlurSize'].variableID),
-            blurEffectsCounter = 0;
+      // case 'layerBlur':
+      //   // Fonctionne pour l'ajout mais pas pour la modification
+      //   let currentBlurSizeVariable = figma.variables.getVariableById(parameters['layerBlurSize'].variableID),
+      //       blurEffectsCounter = 0;
 
-        if(mySelection.length > 0){
-          mySelection.forEach(blur => {            
-            if('effects' in blur){
-              // detecter la longueur de effect car en l'état il sera toujours à 0 car le blur effect est resset, il sera toujours à zero car un seul blur est autorisé, mais il ne faut pas reset tout l'effet, peu etre le cloner avant si blur effect le supprimer et ajouter les effet avant dan le tableau
-              if(blurEffectsCounter == 0){
-                  blur.effects = [{ 
-                  type: 'LAYER_BLUR',
-                  radius: 10,
-                  visible: true,
-                  boundVariables: {
-                    radius : {
-                      id: parameters['layerBlurSize'].variableID,
-                      type: 'VARIABLE_ALIAS'
-                    }
-                  }
-                }];
-              }
+      //   if(mySelection.length > 0){
+      //     mySelection.forEach(blur => {            
+      //       if('effects' in blur){
+      //         // detecter la longueur de effect car en l'état il sera toujours à 0 car le blur effect est resset, il sera toujours à zero car un seul blur est autorisé, mais il ne faut pas reset tout l'effet, peu etre le cloner avant si blur effect le supprimer et ajouter les effet avant dan le tableau
+      //         if(blurEffectsCounter == 0){
+      //             blur.effects = [{ 
+      //             type: 'LAYER_BLUR',
+      //             radius: 10,
+      //             visible: true,
+      //             boundVariables: {
+      //               radius : {
+      //                 id: parameters['layerBlurSize'].variableID,
+      //                 type: 'VARIABLE_ALIAS'
+      //               }
+      //             }
+      //           }];
+      //         }
 
-              let effectsCopy = clone(blur.effects);
-              effectsCopy.forEach((currentEffectCopy: any) => {
-                if(currentEffectCopy.type == 'LAYER_BLUR'){                  
-                  if(currentBlurSizeVariable){
-                    effectsCopy[blurEffectsCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[blurEffectsCounter], 'radius', currentBlurSizeVariable)
-                  }
-                  blur.effects = effectsCopy;                  
-                  blurEffectsCounter++;
-                }
-              });
-            }          
-          });
-        } else {
-          figma.notify('Please select an item')
-        }
-      break;
+      //         let effectsCopy = clone(blur.effects);
+      //         effectsCopy.forEach((currentEffectCopy: any) => {
+      //           if(currentEffectCopy.type == 'LAYER_BLUR'){                  
+      //             if(currentBlurSizeVariable){
+      //               effectsCopy[blurEffectsCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[blurEffectsCounter], 'radius', currentBlurSizeVariable)
+      //             }
+      //             blur.effects = effectsCopy;                  
+      //             blurEffectsCounter++;
+      //           }
+      //         });
+      //       }          
+      //     });
+      //   } else {
+      //     figma.notify('Please select an item')
+      //   }
+      // break;
       case 'dropShadow':
       case 'innerShadow':
         let currentShadowXVariable = figma.variables.getVariableById(parameters['shadowX'].variableID),
@@ -1131,6 +1131,70 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
                 
                 shadowArrayCounter++;
               });
+            }          
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+      break;
+      case 'backgroundBlur':
+      case 'layerBlur':
+        if(mySelection.length > 0){
+          mySelection.forEach(blur => {    
+            let globalCounter = effectsCounter(blur)    
+            
+            if('effects' in blur){
+              if(globalCounter.backgroundBlur > 0){
+                let effectsCopy = clone(blur.effects);
+                let notBackgroundBlurArray: any[] = [];
+                effectsCopy.forEach((currentEffectCopy: any) => {
+                  switch(command){
+                    case 'backgroundBlur':
+                      if(currentEffectCopy.type != 'BACKGROUND_BLUR'){
+                        notBackgroundBlurArray.push(currentEffectCopy);
+                      }
+                    break;
+                    case 'layerBlur':
+                      if(currentEffectCopy.type != 'LAYER_BLUR'){
+                        notBackgroundBlurArray.push(currentEffectCopy);
+                      }
+                    break;
+                  }
+                  
+                });
+                blur.effects = notBackgroundBlurArray;
+              }
+              let effectsArray = blur.effects,
+                  temporaryCopyEffects = [...effectsArray];
+              switch(command){
+                case 'backgroundBlur':
+                  temporaryCopyEffects.push({
+                    type: 'BACKGROUND_BLUR',
+                    radius: parameters['backgroundBlurSize'].value,
+                    visible: true,
+                    boundVariables: {
+                      radius : {
+                        id: parameters['backgroundBlurSize'].variableID,
+                        type: 'VARIABLE_ALIAS'
+                      }
+                    }
+                  })
+                break;
+                case 'layerBlur':
+                  temporaryCopyEffects.push({
+                    type: 'LAYER_BLUR',
+                    radius: parameters['layerBlurSize'].value,
+                    visible: true,
+                    boundVariables: {
+                      radius : {
+                        id: parameters['layerBlurSize'].variableID,
+                        type: 'VARIABLE_ALIAS'
+                      }
+                    }
+                  })
+                break;
+              }              
+              blur.effects = temporaryCopyEffects;
             }          
           });
         } else {

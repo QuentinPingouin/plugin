@@ -35,12 +35,6 @@
           "key": "border_width",
           "description": "Choose your size",
           "optional": true
-        },
-        {
-          "name": "Position",
-          "key": "border_position",
-          "description": "Choose your position",
-          "optional": true
         }
       ]
     }
@@ -186,6 +180,17 @@
           "name": "Size",
           "key": "layerBlurSize",
           "description": "Choose your blur size (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Background blur",
+      "command": "backgroundBlur",
+      "parameters": [
+        {
+          "name": "Size",
+          "key": "backgroundBlurSize",
+          "description": "Choose your background blur size (variable)"
         }
       ]
     },
