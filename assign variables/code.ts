@@ -10,7 +10,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
   const emptySuggestionArray: string[] = ["You need variable to use this plugin"],
         emptyFloatSuggestionArray: string[] = ["You need number variable to use this"],
         emptyColorSuggestionArray: string[] = ["You need color variable to use this"];
-  
+  // Vérifier - changer les noms des appels et les retours des valeurs
   let importedColorVariable: any[] = [],
       importedFloatVariable: any[] = [],
       importedTextVariable: any[] = [],
@@ -51,6 +51,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
       case 'color':
       case 'border_color':
       case 'shadowColor':
+      case 'gridColor':
 
       getColorVariable.forEach(color => {
         const colorCollectionId = color.variableCollectionId,
@@ -221,6 +222,25 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
       case 'shadowX':
       case 'shadowY':
       case 'shadowSpread':
+      case 'gridSize':
+      case 'colCountCenter':
+      case 'colWidthCenter':
+      case 'colGutterCenter':
+      case 'colCountStretch':
+      case 'colMarginStretch':
+      case 'colGutterStretch':
+      case 'colCountLeft':
+      case 'colWidthLeft':
+      case 'colMarginLeft':
+      case 'colGutterLeft':
+      case 'colCountRight':
+      case 'colWidthRight':
+      case 'colMarginRight':
+      case 'colGutterRight':
+      case 'rowCount':
+      case 'rowHeight':
+      case 'rowOffset':
+      case 'rowGuther':
         getNumberVariable.forEach(float => {
           const floatCollectionId = float.variableCollectionId,
                 floatCollectionName = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
@@ -304,6 +324,19 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
                     })
                   }
+                break;
+                default:
+                  // if(float.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                    })
+                  // }
                 break;
               }
         });
@@ -392,6 +425,19 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
                     })
                   }
+                break;
+                default:
+                  // if(importedFloat.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatNameImported,
+                      value: floatValueImported,
+                      id: floatVariableIdImported,
+                      collectionName: floatCollectionNameImported,
+                      collectionId: floatCollectionId,
+                      location: 'Imported',
+                      searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                    })
+                  // }
                 break;
             }
           });
@@ -1201,6 +1247,151 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
           figma.notify('Please select an item')
         }
       break;
+      case 'grid':
+        let selectedGridSizeVariable = figma.variables.getVariableById(parameters['gridSize'].variableID);
+
+        mySelection.forEach(selectedObject => {
+          if('layoutGrids' in selectedObject){
+            let layoutGridCopy = clone(selectedObject.layoutGrids);
+            let gridLayoutTypeCounter = gridCounter(selectedObject);
+
+            if(gridLayoutTypeCounter.grid == 0){
+              layoutGridCopy.push({
+                    "pattern": "GRID",
+                    "visible": true,
+                    "color": {
+                        "r": 1,
+                        "g": 0,
+                        "b": 0,
+                        "a": 0.10000000149011612
+                    },
+                    "boundVariables": {
+                        "sectionSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['gridSize'].variableID
+                        }
+                    },
+                    "sectionSize": parameters['gridSize'].value
+                })        
+            } else {
+              layoutGridCopy.forEach((gridItem: any, index: number) => {              
+                if(gridItem.pattern == 'GRID' && selectedGridSizeVariable){
+                  layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridSizeVariable)
+                }
+              });
+            }
+            selectedObject.layoutGrids = layoutGridCopy; 
+          }
+        });
+      // Attention ne fonctionne que pour grid 
+      // Attention si je change un element fgrid en col alors qu'il a une variable assigné ça plante car la boundvariable selection size n'existe pas
+      break;
+      case 'gridColumnCenter':
+        let selectedGridColumnNumberVariable = figma.variables.getVariableById(parameters['colCountCenter'].variableID),
+            selectedGridColumnWidthVariable = figma.variables.getVariableById(parameters['colWidthCenter'].variableID),
+            selectedGridColumnGutterVariable = figma.variables.getVariableById(parameters['colGutterCenter'].variableID)
+
+            mySelection.forEach(selectedObject => {
+              if('layoutGrids' in selectedObject){
+                let layoutGridCopy = clone(selectedObject.layoutGrids);
+                let gridLayoutTypeCounter = gridCounter(selectedObject);
+
+                if(gridLayoutTypeCounter.col == 0){                                    
+                  layoutGridCopy.push({
+                      alignment: "CENTER",
+                      boundVariables: {
+                        "count": {
+                          "type": "VARIABLE_ALIAS",
+                          "id": parameters['colCountCenter'].variableID
+                        },
+                        // "offset": {
+                        //   "type": "VARIABLE_ALIAS",
+                        //   "id": parameters['colMargin'].variableID
+                        // },
+                        "sectionSize": {
+                          "type": "VARIABLE_ALIAS",
+                          "id": parameters['colWidthCenter'].variableID
+                        },
+                        "gutterSize": {
+                          "type": "VARIABLE_ALIAS",
+                          "id": parameters['colGutterCenter'].variableID
+                        }
+                      },
+                      color: {r: 1, g: 0, b: 0, a: 0.10000000149011612},
+                      count: parameters['colCountCenter'].value,
+                      gutterSize: parameters['colGutterCenter'].value,
+                      sectionSize: parameters['colWidthCenter'].value,
+                      pattern: "COLUMNS",
+                      visible: true
+                    })
+                } else {
+                  layoutGridCopy.forEach((gridItem: any, index: number) => {                            
+                    if(gridItem.pattern == 'COLUMNS' && selectedGridColumnNumberVariable && selectedGridColumnGutterVariable && selectedGridColumnWidthVariable){
+                      console.log(selectedGridColumnNumberVariable);
+                      layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberVariable)
+                      layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridColumnWidthVariable)
+                      layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterVariable)
+                    }
+                  });
+                }
+                selectedObject.layoutGrids = layoutGridCopy; 
+              }
+            });
+      break;
+      case 'gridColumnStretch':
+        let selectedGridColumnNumberStretchVariable = figma.variables.getVariableById(parameters['colCountStretch'].variableID),
+            // selectedGridColumnWidthStretchVariable = figma.variables.getVariableById(parameters['colWidthStretch'].variableID),
+            selectedGridColumnMarginStretchVariable = figma.variables.getVariableById(parameters['colMarginStretch'].variableID),
+            selectedGridColumnGutterStretchVariable = figma.variables.getVariableById(parameters['colGutterStretch'].variableID)
+            
+            mySelection.forEach(selectedObject => {
+              if('layoutGrids' in selectedObject){
+                let layoutGridCopy = clone(selectedObject.layoutGrids);
+                let gridLayoutTypeCounter = gridCounter(selectedObject);
+                console.log(parameters['colCountStretch'].value);
+                
+                if(gridLayoutTypeCounter.col == 0){  
+                  console.log('test');                                  
+                  layoutGridCopy.push({
+                      alignment: "STRETCH",
+                      boundVariables: {
+                        "count": {
+                          "type": "VARIABLE_ALIAS",
+                          "id": parameters['colCountStretch'].variableID
+                        },
+                        "offset": {
+                          "type": "VARIABLE_ALIAS",
+                          "id": parameters['colMarginStretch'].variableID
+                        },
+                        // "sectionSize": {
+                        //   "type": "VARIABLE_ALIAS",
+                        //   "id": parameters['colWidthCenter'].variableID
+                        // },
+                        "gutterSize": {
+                          "type": "VARIABLE_ALIAS",
+                          "id": parameters['colGutterStretch'].variableID
+                        }
+                      },
+                      color: {r: 1, g: 0, b: 0, a: 0.10000000149011612},
+                      count: parameters['colCountStretch'].value,
+                      gutterSize: parameters['colGutterStretch'].value,
+                      offset: parameters['colMarginStretch'].value,
+                      pattern: "COLUMNS",
+                      visible: true
+                    })
+                } else {
+                  layoutGridCopy.forEach((gridItem: any, index: number) => {                            
+                    if(gridItem.pattern == 'COLUMNS' && selectedGridColumnNumberStretchVariable && selectedGridColumnGutterStretchVariable && selectedGridColumnMarginStretchVariable){
+                      layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberStretchVariable)
+                      layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridColumnMarginStretchVariable)
+                      layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterStretchVariable)
+                    }
+                  });
+                }
+                selectedObject.layoutGrids = layoutGridCopy; 
+              }
+            });
+      break;
     }
   }
   figma.closePlugin()
@@ -1237,7 +1428,7 @@ function writeVariables(contextualElement: any, numberScoping: string, myArray: 
   }
 }
 
-function effectsCounter(currentItem: any){
+function effectsCounter(currentItem: any){  
   let dropShadowCounter = 0,
       layerBlurCounter = 0,
       backgroundBlurCounter = 0,
@@ -1268,5 +1459,34 @@ function effectsCounter(currentItem: any){
     backgroundBlur: backgroundBlurCounter,
     innerShadow: innerShadowCounter
   }
+  return globalCounter;
+}
+
+function gridCounter(currentItem: any){
+  let gridCounter = 0,
+      rowCounter = 0,
+      colCounter = 0;
+
+  currentItem.layoutGrids.forEach((gridCounterItem: any) => {
+    switch(gridCounterItem.pattern){
+      case 'GRID':
+        gridCounter++;
+      break;
+
+      case 'ROWS':
+        rowCounter++;
+      break;
+
+      case 'COLUMNS':
+        colCounter++;
+      break;
+
+    }
+  });
+  let globalCounter = {
+    grid: gridCounter,
+    row: rowCounter,
+    col: colCounter,
+  }  
   return globalCounter;
 }

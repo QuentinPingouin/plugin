@@ -257,6 +257,85 @@
           "optional": true
         }
       ]
+    },
+    {
+      "name": "Grid",
+      "command": "grid",
+      "parameters": [
+        {
+          "name": "Size",
+          "key": "gridSize",
+          "description": "Choose the grid size (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Grid Row",
+      "command": "gridRow",
+      "parameters": [
+        {
+          "name": "Number of rows",
+          "key": "rowCount",
+          "description": "Choose the number of rows (variable)"
+        },
+        {
+          "name": "Height",
+          "key": "rowHeight",
+          "description": "Choose the height of the rows (variable)"
+        },
+        {
+          "name": "Offset",
+          "key": "rowOffset",
+          "description": "Choose the height of the offset (variable)"
+        },
+        {
+          "name": "Guther",
+          "key": "rowGuther",
+          "description": "Choose the width of the guthers (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Grid Column -> Center",
+      "command": "gridColumnCenter",
+      "parameters": [
+        {
+          "name": "Number of columns",
+          "key": "colCountCenter",
+          "description": "Choose the number of columns (variable)"
+        },
+        {
+          "name": "Width",
+          "key": "colWidthCenter",
+          "description": "Choose the width of the columns (variable)"
+        },
+        {
+          "name": "Guther",
+          "key": "colGutterCenter",
+          "description": "Choose the width of the guthers (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Grid Column -> Stretch",
+      "command": "gridColumnStretch",
+      "parameters": [
+        {
+          "name": "Number of columns",
+          "key": "colCountStretch",
+          "description": "Choose the number of columns (variable)"
+        },
+        {
+          "name": "Margin",
+          "key": "colMarginStretch",
+          "description": "Choose the margin of the grid (variable)"
+        },
+        {
+          "name": "Gutter",
+          "key": "colGutterStretch",
+          "description": "Choose the width of the guthers (variable)"
+        }
+      ]
     }
   ],
   "networkAccess": {
