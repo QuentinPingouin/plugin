@@ -310,7 +310,7 @@
           "description": "Choose the width of the columns (variable)"
         },
         {
-          "name": "Guther",
+          "name": "Gutter",
           "key": "colGutterCenter",
           "description": "Choose the width of the guthers (variable)"
         }
@@ -333,6 +333,58 @@
         {
           "name": "Gutter",
           "key": "colGutterStretch",
+          "description": "Choose the width of the guthers (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Grid Column -> Left",
+      "command": "gridColumnLeft",
+      "parameters": [
+        {
+          "name": "Number of columns",
+          "key": "colCountLeft",
+          "description": "Choose the number of columns (variable)"
+        },
+        {
+          "name": "Width",
+          "key": "colWidthLeft",
+          "description": "Choose the width of the columns (variable)"
+        },
+        {
+          "name": "Margin",
+          "key": "colMarginLeft",
+          "description": "Choose the margin of the grid (variable)"
+        },
+        {
+          "name": "Gutter",
+          "key": "colGutterLeft",
+          "description": "Choose the width of the guthers (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Grid Column -> Right",
+      "command": "gridColumnRight",
+      "parameters": [
+        {
+          "name": "Number of columns",
+          "key": "colCountRight",
+          "description": "Choose the number of columns (variable)"
+        },
+        {
+          "name": "Width",
+          "key": "colWidthRight",
+          "description": "Choose the width of the columns (variable)"
+        },
+        {
+          "name": "Margin",
+          "key": "colMarginRight",
+          "description": "Choose the margin of the grid (variable)"
+        },
+        {
+          "name": "Gutter",
+          "key": "colGutterRight",
           "description": "Choose the width of the guthers (variable)"
         }
       ]
