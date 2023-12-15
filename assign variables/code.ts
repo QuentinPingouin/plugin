@@ -1322,31 +1322,33 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
                         visible: true
                       })
                   } else {
-                    layoutGridCopy.forEach((gridItem: any, index: number) => {   
-                      if(gridItem.alignment != "CENTER"){
-                        let gridItemClone = clone(gridItem);
-                        gridItemClone.alignment = "CENTER";
-                        switch(gridItem.alignment){
-                          case 'MIN':
-                          case 'MAX':
-                            delete gridItemClone.offset;
-                            delete gridItemClone.boundVariables.offset;
-                          break;
-                          case 'STRETCH':
-                            delete gridItemClone.offset;
-                            delete gridItemClone.boundVariables.offset;
-                            gridItemClone.sectionSize = parameters['colWidthCenter'].value;
-                            gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['colWidthCenter'].variableID};
-                          break;
-                        }
-                        layoutGridCopy[index] = gridItemClone;
-                      } else{
-                        if(gridItem.pattern == 'COLUMNS' && selectedGridColumnNumberVariable && selectedGridColumnGutterVariable && selectedGridColumnWidthVariable){
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberVariable)
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridColumnWidthVariable)
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterVariable)
-                        }
-                      } 
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {  
+                      if(gridItem.pattern == 'COLUMNS'){ 
+                        if(gridItem.alignment != "CENTER"){
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "CENTER";
+                          switch(gridItem.alignment){
+                            case 'MIN':
+                            case 'MAX':
+                              delete gridItemClone.offset;
+                              delete gridItemClone.boundVariables.offset;
+                            break;
+                            case 'STRETCH':
+                              delete gridItemClone.offset;
+                              delete gridItemClone.boundVariables.offset;
+                              gridItemClone.sectionSize = parameters['colWidthCenter'].value;
+                              gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['colWidthCenter'].variableID};
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;
+                        } else{
+                          if(gridItem.pattern == 'COLUMNS' && selectedGridColumnNumberVariable && selectedGridColumnGutterVariable && selectedGridColumnWidthVariable){
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridColumnWidthVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterVariable)
+                          }
+                        } 
+                      }
                     });
                   }
                   selectedObject.layoutGrids
@@ -1392,29 +1394,32 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
                       })
                   } else {
                     layoutGridCopy.forEach((gridItem: any, index: number) => {
-                      if(gridItem.alignment != "STRETCH"){
-                        let gridItemClone = clone(gridItem);
-                        gridItemClone.alignment = "STRETCH";
-                        switch(gridItem.alignment){
-                          case 'MIN':
-                          case 'MAX':
-                            delete gridItemClone.sectionSize;
-                            delete gridItemClone.boundVariables.sectionSize;
-                          break;
-                          case 'CENTER':
-                            delete gridItemClone.sectionSize;
-                            delete gridItemClone.boundVariables.sectionSize;
-                            gridItemClone.offset = parameters['colMarginStretch'].value;
-                            gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['colMarginStretch'].variableID};                            
-                          break;
-                        }
-                        layoutGridCopy[index] = gridItemClone;
-                      } else{
-                        if(gridItem.pattern == 'COLUMNS' && selectedGridColumnNumberStretchVariable && selectedGridColumnGutterStretchVariable && selectedGridColumnMarginStretchVariable){
-                          layoutGridCopy[index].alignment = 'STRETCH';
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberStretchVariable)
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridColumnMarginStretchVariable)
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterStretchVariable)
+                      if(gridItem.pattern == 'COLUMNS'){
+                        if(gridItem.alignment != "STRETCH"){
+                        
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "STRETCH";
+                          switch(gridItem.alignment){
+                            case 'MIN':
+                            case 'MAX':
+                              delete gridItemClone.sectionSize;
+                              delete gridItemClone.boundVariables.sectionSize;
+                            break;
+                            case 'CENTER':
+                              delete gridItemClone.sectionSize;
+                              delete gridItemClone.boundVariables.sectionSize;
+                              gridItemClone.offset = parameters['colMarginStretch'].value;
+                              gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['colMarginStretch'].variableID};                            
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;                         
+                        } else{
+                          if(selectedGridColumnNumberStretchVariable && selectedGridColumnGutterStretchVariable && selectedGridColumnMarginStretchVariable){
+                            layoutGridCopy[index].alignment = 'STRETCH';
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberStretchVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridColumnMarginStretchVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterStretchVariable)
+                          }
                         }
                       }
                     });
@@ -1466,30 +1471,31 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
                         visible: true
                       })
                   } else {
-                    layoutGridCopy.forEach((gridItem: any, index: number) => {   
-                      if(gridItem.alignment != "MIN"){
-                        
-                        let gridItemClone = clone(gridItem);
-                        gridItemClone.alignment = "MIN";
-                        
-                        switch(gridItem.alignment){
-                          case 'STRETCH':
-                            gridItemClone.sectionSize = parameters['colWidthLeft'].value;
-                            gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['colWidthLeft'].variableID};
-                          break;
-                          case 'CENTER':
-                            gridItemClone.offset = parameters['colMarginLeft'].value;
-                            gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['colMarginLeft'].variableID};
-                          break;
-                        }
-                        layoutGridCopy[index] = gridItemClone;
-                      } else{                         
-                        if(gridItem.pattern == 'COLUMNS' && selectedGridColumnNumberLeftVariable && selectedGridColumnWidthLeftVariable && selectedGridColumnMarginLeftVariable && selectedGridColumnGutterLeftVariable){
-                          layoutGridCopy[index].alignment = 'MIN';
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberLeftVariable)
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridColumnMarginLeftVariable)
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterLeftVariable)
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridColumnWidthLeftVariable)
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {
+                      if(gridItem.pattern == 'COLUMNS'){
+                        if(gridItem.alignment != "MIN"){
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "MIN";
+                          
+                          switch(gridItem.alignment){
+                            case 'STRETCH':
+                              gridItemClone.sectionSize = parameters['colWidthLeft'].value;
+                              gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['colWidthLeft'].variableID};
+                            break;
+                            case 'CENTER':
+                              gridItemClone.offset = parameters['colMarginLeft'].value;
+                              gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['colMarginLeft'].variableID};
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;
+                        } else{                         
+                          if(gridItem.pattern == 'COLUMNS' && selectedGridColumnNumberLeftVariable && selectedGridColumnWidthLeftVariable && selectedGridColumnMarginLeftVariable && selectedGridColumnGutterLeftVariable){
+                            layoutGridCopy[index].alignment = 'MIN';
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberLeftVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridColumnMarginLeftVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterLeftVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridColumnWidthLeftVariable)
+                          }
                         }
                       }
                     });
@@ -1541,31 +1547,32 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
                         visible: true
                       })
                   } else {
-                    layoutGridCopy.forEach((gridItem: any, index: number) => {    
-                      if(gridItem.alignment != "MAX"){
-                        
-                        let gridItemClone = clone(gridItem);
-                        gridItemClone.alignment = "MAX";
-                        
-                        switch(gridItem.alignment){
-                          case 'STRETCH':
-                            gridItemClone.sectionSize = parameters['colWidthRight'].value;
-                            gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['colWidthRight'].variableID};
-                          break;
-                          case 'CENTER':
-                            gridItemClone.offset = parameters['colMarginRight'].value;
-                            gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['colMarginRight'].variableID};
-                          break;
-                        }
-                        layoutGridCopy[index] = gridItemClone;
-                      } else{                          
-                        if(gridItem.pattern == 'COLUMNS' && selectedGridColumnNumberRightVariable && selectedGridColumnWidthRightVariable && selectedGridColumnMarginRightVariable && selectedGridColumnGutterRightVariable){
-  
-                          layoutGridCopy[index].alignment = 'MAX';
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberRightVariable)
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridColumnMarginRightVariable)
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterRightVariable)
-                          layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridColumnWidthRightVariable)
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {
+                      if(gridItem.pattern == 'COLUMNS'){
+                        if(gridItem.alignment != "MAX"){
+                          
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "MAX";
+                          
+                          switch(gridItem.alignment){
+                            case 'STRETCH':
+                              gridItemClone.sectionSize = parameters['colWidthRight'].value;
+                              gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['colWidthRight'].variableID};
+                            break;
+                            case 'CENTER':
+                              gridItemClone.offset = parameters['colMarginRight'].value;
+                              gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['colMarginRight'].variableID};
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;
+                        } else{
+                          if(gridItem.pattern == 'COLUMNS' && selectedGridColumnNumberRightVariable && selectedGridColumnWidthRightVariable && selectedGridColumnMarginRightVariable && selectedGridColumnGutterRightVariable){
+                            layoutGridCopy[index].alignment = 'MAX';
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberRightVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridColumnMarginRightVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterRightVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridColumnWidthRightVariable)
+                          }
                         }
                       }
                     });
