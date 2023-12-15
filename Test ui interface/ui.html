@@ -20,6 +20,27 @@
 //       parent.postMessage({ pluginMessage: { type: 'apply-color' } }, '*');
 //     }
 //   });
+
+document.addEventListener(
+        "keydown",
+        (event) => {
+          const nomTouche = event.key;
+
+          if (nomTouche === "Control") {
+            // Pas d'alerte si seule la touche Control est pressée.
+            return;
+          }
+
+          if (event.ctrlKey) {
+            // Même si event.key n'est pas 'Control' (par ex., 'a' is pressed),
+            // event.ctrlKey peut être true si la touche Ctrl est pressée dans le même temps.
+            console.log('Combinaison de ctrlKey + ${nomTouche}');
+          } else {
+            console.log('Touche pressée ${nomTouche}');
+          }
+        },
+        false,
+      );
 </script>
 
 

@@ -113,10 +113,8 @@ figma.ui.onmessage = (message) => {
           }
         };
     console.log('Raccourci clavier Ctrl+J détecté !');
-    
   }
 };
-
 
 figma.on('run', () => {
   console.log('ducon');

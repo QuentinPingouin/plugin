@@ -1,339 +1,851 @@
 figma.parameters.on('input', ({query, result, key, parameters}) =>{  
+  const getNumberVariable = figma.variables.getLocalVariables('FLOAT'),
+        getColorVariable = figma.variables.getLocalVariables('COLOR'),
+        getTextVariable = figma.variables.getLocalVariables('STRING');
+  
+  let colorNames: string[] = [];
+  let colorObjects: any[] = [];
+  let floatObjects: any[] = [];
+  let textObjects: any[] = [];
   const emptySuggestionArray: string[] = ["You need variable to use this plugin"],
         emptyFloatSuggestionArray: string[] = ["You need number variable to use this"],
         emptyColorSuggestionArray: string[] = ["You need color variable to use this"];
-  if(figma.variables.getLocalVariables().length === 0){    
-    result.setSuggestions(emptySuggestionArray);
-  } else {
+  // Vérifier - changer les noms des appels et les retours des valeurs
+  let importedColorVariable: any[] = [],
+      importedFloatVariable: any[] = [],
+      importedTextVariable: any[] = [],
+      importedCollection: any[] = [];
+      
+  async function getLibraryCollections() {
+    const libraryCollections =
+      await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
+    for (const libraryItem of libraryCollections) {
+      let variablesInLibrary = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(libraryItem.key);
+      importedCollection.push(libraryItem);
+
+      for(const variable of variablesInLibrary){
+        const importedVariable =
+          await figma.variables.importVariableByKeyAsync(variable.key);
+
+        switch(importedVariable.resolvedType){
+          case 'COLOR':           
+            importedColorVariable.push(importedVariable);
+          break;
+
+          case 'FLOAT':
+            importedFloatVariable.push(importedVariable);
+          break;
+
+          case 'STRING':    
+            importedTextVariable.push(importedVariable);            
+          break;
+        }
+      }
+    }
+  }
+  
+  // if(figma.variables.getLocalVariables().length === 0){    
+  //   result.setSuggestions(emptySuggestionArray);
+  // } else {
     switch(key){
       case 'color':
       case 'border_color':
-        if(figma.variables.getLocalVariables('COLOR').length === 0){
-          result.setSuggestions(emptyColorSuggestionArray);
-        } else {
-          let colorNames: string[] = [];
-          let dataNames: string[] = [];
-          
-          let getCollection = figma.variables.getLocalVariableCollections();
-          let collectionLength = getCollection.length;
+      case 'shadowColor':
+      case 'gridColor':
 
-          //Collection Loop
-          for (let collectionCount = 0; collectionCount < collectionLength; collectionCount++) {
-            let collection = getCollection[collectionCount];
-            let collectionName = collection.name;
-            let collectionVariablesIds = collection.variableIds;
-            let collectionVariablesIdsLength = collectionVariablesIds.length;
+      getColorVariable.forEach(color => {
+        const colorCollectionId = color.variableCollectionId,
+              colorCollectionName = figma.variables.getVariableCollectionById(colorCollectionId)?.name,
+              colorName = color.name,
+              colorVariableId = color.id,
+              colorHexValue = rgbaToHex(color.valuesByMode[Object.keys(color.valuesByMode)[0]] as RGBA);
 
-            //Variables Loop
-            for (let variableIdsCount = 0; variableIdsCount < collectionVariablesIdsLength; variableIdsCount++) {
-              let variableIdsString = collectionVariablesIds[variableIdsCount];
-              let variableObjet = figma.variables.getVariableById(`${variableIdsString}`);
-              let getColor = variableObjet?.name.toLocaleLowerCase();
-              let getValueMode = variableObjet?.valuesByMode;
-              let getResolveType = variableObjet?.resolvedType;
+              colorObjects.push({
+                name: colorName,
+                hexValue: colorHexValue,
+                id: colorVariableId,
+                collectionName: colorCollectionName,
+                collectionId: colorCollectionId,
+                location: 'Local',
+                searchValue: colorName + ' --> ' + colorCollectionName 
+              })        
+      });
+      
+        // if(figma.variables.getLocalVariables('COLOR').length === 0){
+        //   result.setSuggestions(emptyColorSuggestionArray);
+        // } else {
+          // let colorNames: string[] = [];
 
-              if(getResolveType == 'COLOR' && getColor !== undefined) {
-                //Push the color name to the array
-                if(getValueMode){
-                  let firstModeValue = getValueMode[Object.keys(getValueMode)[0]] as RGBA;
 
-                  colorNames.push(getColor + ' (' + collectionName + ')');
-                  dataNames.push(rgbaToHex(firstModeValue));
-                }
-              }
-            }
-          }
-          const suggestionsColor = colorNames
-              .filter(s => s.includes(query))
-              .map((s, index) => {
-                const myHex = dataNames[index];
+          getLibraryCollections().then(() => {
+            importedColorVariable.forEach(importedColor => {
+              const colorCollectionId = importedColor.variableCollectionId,
+                colorCollectionNameImported = figma.variables.getVariableCollectionById(colorCollectionId)?.name,
+                colorNameImported = importedColor.name,
+                colorVariableIdImported = importedColor.id,
+                colorHexValueImported = rgbaToHex(importedColor.valuesByMode[Object.keys(importedColor.valuesByMode)[0]] as RGBA);
 
-                return ({ name: s, icon: `<svg width="$size$" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="${myHex}" /></svg>`})
+              colorObjects.push({
+                name: colorNameImported,
+                hexValue: colorHexValueImported,
+                id: colorVariableIdImported,
+                collectionName: colorCollectionNameImported,
+                collectionId: colorCollectionId,
+                location: 'Imported',
+                searchValue: colorNameImported + ' --> ' + colorCollectionNameImported
+              })  
+              
+            });     
+            const suggestionsColor = colorObjects
+              .filter(s => s.searchValue.includes(query))
+              .map((s) => {
+                return ({ 
+                  name: s.searchValue,
+                  icon: `<svg width="$size$" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="${s.hexValue}" /></svg>`,
+                  data: {
+                    variableID: s.id,
+                    collectionId: s.collectionId,
+                    localOrImported: s.location,
+                  }})
               });
               
-          result.setSuggestions(suggestionsColor);
-        }
+          result.setSuggestions(suggestionsColor);     
+          });
+        // }
       break;
 
-      case 'border_width':
-        let defaultStrokeSize: string[] = [];
-        let getCollectionStroke = figma.variables.getLocalVariableCollections();
-        let collectionLengthStroke = getCollectionStroke.length;
-        let floatVariableCount = figma.variables.getLocalVariables('FLOAT').length;
+      case 'border_width'://mettre la condition pour qu'il s'affhiche que les strokes
+      case 'paddingSize':
+        getNumberVariable.forEach(float => {
+          const floatCollectionId = float.variableCollectionId,
+                floatCollectionName = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
+                floatName = float.name,
+                floatVariableId = float.id,
+                floatValue = float.valuesByMode[Object.keys(float.valuesByMode)[0]] as number;
+  
+            floatObjects.push({
+              name: floatName,
+              value: floatValue,
+              id: floatVariableId,
+              collectionName: floatCollectionName,
+              collectionId: floatCollectionId,
+              location: 'Local',
+              searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+            })        
+        });
 
-        //Collection Loop
-        for (let collectionCount = 0; collectionCount < collectionLengthStroke; collectionCount++) {
-          let collection = getCollectionStroke[collectionCount];
-          let collectionName = collection.name;
-          let collectionVariablesIds = collection.variableIds;
-          let collectionVariablesIdsLength = collectionVariablesIds.length;
+        getLibraryCollections().then(() => {
+          importedFloatVariable.forEach(importedFloat => {
+            const floatCollectionId = importedFloat.variableCollectionId,
+                  floatCollectionNameImported = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
+                  floatNameImported = importedFloat.name,
+                  floatVariableIdImported = importedFloat.id,
+                  floatValueImported = importedFloat.valuesByMode[Object.keys(importedFloat.valuesByMode)[0]] as number;
 
-          //Variables Loop
-          for (let variableIdsCount = 0; variableIdsCount < collectionVariablesIdsLength; variableIdsCount++) {
-            let variableIdsString = collectionVariablesIds[variableIdsCount];
-            let variableObjet = figma.variables.getVariableById(`${variableIdsString}`);
-            let getColor = variableObjet?.name;
-            let getValueMode = variableObjet?.valuesByMode;
-            let getResolveType = variableObjet?.resolvedType;
-
-            if(getResolveType == 'FLOAT' && floatVariableCount > 0) {
-              if(getValueMode){
-                let firstModeValue = getValueMode[Object.keys(getValueMode)[0]] as Number;
-                defaultStrokeSize.push(firstModeValue + 'px  (' + collectionName + ')');
-              }
-            }
-          }
-        }
-        if(floatVariableCount === 0) {
-          defaultStrokeSize.push('1', '2', '3', '4', '5', '6', '7', '8', '9', '10');
-        }
-
-        const suggestionsNumber = defaultStrokeSize
-            .filter(s => s.includes(query))
-            .map((s, index) => {
-              const variableStringToNumber = extractNumber(defaultStrokeSize[index]) as number; 
-              const sizeFixe = 16;          
-
-              return ({ name: s, icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" stroke="red" stroke-width="${variableStringToNumber}"/></svg>`});
-            });
+            floatObjects.push({
+              name: floatNameImported,
+              value: floatValueImported,
+              id: floatVariableIdImported,
+              collectionName: floatCollectionNameImported,
+              collectionId: floatCollectionId,
+              location: 'Imported',
+              searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported + ')' 
+            })  
             
-        result.setSuggestions(suggestionsNumber);
+          });
+
+          if(floatObjects.length == 0){
+            for(let numberCount = 0; numberCount <= 10; numberCount++){              
+              floatObjects.push({
+                name: '', 
+                value: numberCount, 
+                id: 'created/' + numberCount,
+                collectionId: 'createdCollection/' + numberCount,
+                location: 'created',
+                searchValue: numberCount + 'px',
+              })              
+            }
+          } else {
+            floatObjects.sort((a, b) => a.value - b.value);
+          }
+          switch(key){
+            case 'border_width':
+              const suggestionsFloatBorder = floatObjects
+                .filter(s => s.searchValue.includes(query))
+                .map((s) => {              
+                  const sizeFixe = 16;  
+                  return ({ 
+                    name: s.searchValue,
+                    icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" stroke="red" stroke-width="${s.value}"/></svg>`,
+                    data: {
+                      value : s.value,
+                      variableID: s.id,
+                      collectionId: s.collectionId,
+                      localOrImported: s.location,
+                    }})
+              });
+              result.setSuggestions(suggestionsFloatBorder); 
+            break;
+            default:
+              const suggestionsFloat = floatObjects
+                .filter(s => s.searchValue.includes(query))
+                .map((s) => {              
+                  return ({ 
+                    name: s.searchValue,
+                    data: {
+                      value : s.value,
+                      variableID: s.id,
+                      collectionId: s.collectionId,
+                      localOrImported: s.location,
+                    }})
+              });
+              result.setSuggestions(suggestionsFloat);
+            break;
+          }
+          
+           
+        });
       break;
 
       case 'height':
       case 'width':
-      case 'itemSpacing':
       case 'radius':
-      case 'characters':
-      case 'padding':
       case 'minWidth':
       case 'maxWidth':
       case 'minHeight':
       case 'maxHeight':
-        let numberVariable = figma.variables.getLocalVariables('FLOAT'),
-            scopesCases: string[] = ['ALL_SCOPES', 'TEXT_CONTENT', 'CORNER_RADIUS', 'WIDTH_HEIGHT', 'GAP'],
-            sizeArray: string[] = [],
-            scopeType = 'ALL_SCOPES',
-            scopeArray: string[] = [];
+      case 'gap_size':
+      case 'opacity':
+      case 'layerBlurSize':
+      case 'backgroundBlurSize':
+      case 'shadowBlur':
+      case 'shadowX':
+      case 'shadowY':
+      case 'shadowSpread':
+      case 'gridSize':
+      case 'colCountCenter':
+      case 'colWidthCenter':
+      case 'colGutterCenter':
+      case 'colCountStretch':
+      case 'colMarginStretch':
+      case 'colGutterStretch':
+      case 'colCountLeft':
+      case 'colWidthLeft':
+      case 'colMarginLeft':
+      case 'colGutterLeft':
+      case 'colCountRight':
+      case 'colWidthRight':
+      case 'colMarginRight':
+      case 'colGutterRight':
+      case 'rowCountCenter':
+      case 'rowWidthCenter':
+      case 'rowGutterCenter':
+      case 'rowCountStretch':
+      case 'rowMarginStretch':
+      case 'rowGutterStretch':
+      case 'rowCountTop':
+      case 'rowWidthTop':
+      case 'rowMarginTop':
+      case 'rowGutterTop':
+      case 'rowCountBottom':
+      case 'rowWidthBottom':
+      case 'rowMarginBottom':
+      case 'rowGutterBottom':
+        getNumberVariable.forEach(float => {
+          const floatCollectionId = float.variableCollectionId,
+                floatCollectionName = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
+                floatName = float.name,
+                floatVariableId = float.id,
+                floatValue = float.valuesByMode[Object.keys(float.valuesByMode)[0]] as number;
+  
+              switch(key){
+                case 'height':
+                case "width":
+                case "minWidth":
+                case "maxWidth":
+                case "minHeight":
+                case "maxHeight":
+                  if(float.scopes.toString().includes('WIDTH_HEIGHT') || float.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                    })
+                  }
+                break;
 
-        if(figma.variables.getLocalVariables('FLOAT').length === 0){
-          result.setSuggestions(emptyFloatSuggestionArray);
-        } else {
-          numberVariable.forEach(element => {
-            if(element){
-              const scopeTypeActualy = element.scopes.toString();
-              scopeArray.push(scopeTypeActualy)
+                case "gap_size":
+                  if(float.scopes.toString().includes('GAP') || float.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName + ')'
+                    })
+                  }
+                break;
+                case "radius":
+                  if(float.scopes.toString().includes('CORNER_RADIUS') || float.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                    })
+                  }
+                break;
+                case 'opacity':
+                  if(float.scopes.toString().includes('OPACITY')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + '% --> (var--' + floatName + ') / ' + floatCollectionName
+                    })
+                  }
+                break;
+                case 'layerBlurSize':
+                case 'backgroundBlurSize':
+                case 'shadowBlur':
+                case 'shadowX':
+                case 'shadowY':
+                case 'shadowSpread':
+                  if(float.scopes.toString().includes('EFFECT_FLOAT') || float.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                    })
+                  }
+                break;
+                default:
+                  // if(float.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatName,
+                      value: floatValue,
+                      id: floatVariableId,
+                      collectionName: floatCollectionName,
+                      collectionId: floatCollectionId,
+                      location: 'Local',
+                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                    })
+                  // }
+                break;
+              }
+        });
+        getLibraryCollections().then(() => {
+          importedFloatVariable.forEach(importedFloat => {
+            const floatCollectionId = importedFloat.variableCollectionId,
+                  floatCollectionNameImported = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
+                  floatNameImported = importedFloat.name,
+                  floatVariableIdImported = importedFloat.id,
+                  floatValueImported = importedFloat.valuesByMode[Object.keys(importedFloat.valuesByMode)[0]] as number;
+
+            switch(key){
+              case 'height':
+              case "width":
+              case "minWidth":
+              case "maxWidth":
+              case "minHeight":
+              case "maxHeight":
+                if(importedFloat.scopes.toString().includes('WIDTH_HEIGHT') || importedFloat.scopes.toString().includes('ALL_SCOPES')){
+                  floatObjects.push({
+                    name: floatNameImported,
+                    value: floatValueImported,
+                    id: floatVariableIdImported,
+                    collectionName: floatCollectionNameImported,
+                    collectionId: floatCollectionId,
+                    location: 'Imported',
+                    searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                  })  
+                }
+              break;
+
+              case "gap_size":
+                if(importedFloat.scopes.toString().includes('GAP') || importedFloat.scopes.toString().includes('ALL_SCOPES')){
+                  floatObjects.push({
+                    name: floatNameImported,
+                    value: floatValueImported,
+                    id: floatVariableIdImported,
+                    collectionName: floatCollectionNameImported,
+                    collectionId: floatCollectionId,
+                    location: 'Imported',
+                    searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                  })
+                }
+              break;
+              case "radius":
+                if(importedFloat.scopes.toString().includes('CORNER_RADIUS') || importedFloat.scopes.toString().includes('ALL_SCOPES')){
+                  floatObjects.push({
+                    name: floatNameImported,
+                    value: floatValueImported,
+                    id: floatVariableIdImported,
+                    collectionName: floatCollectionNameImported,
+                    collectionId: floatCollectionId,
+                    location: 'Imported',
+                    searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                  })
+                }
+              break;
+
+              case 'opacity':
+                if(importedFloat.scopes.toString().includes('OPACITY')){
+                  floatObjects.push({
+                    name: floatNameImported,
+                    value: floatValueImported,
+                    id: floatVariableIdImported,
+                    collectionName: floatCollectionNameImported,
+                    collectionId: floatCollectionId,
+                    location: 'Imported',
+                    searchValue: floatValueImported + '% --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                  })
+                }
+                break;
+                case 'layerBlurSize':
+                case 'backgroundBlurSize':
+                case 'shadowBlur':
+                case 'shadowX':
+                case 'shadowY':
+                case 'shadowSpread':
+                  if(importedFloat.scopes.toString().includes('EFFECT_FLOAT') || importedFloat.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatNameImported,
+                      value: floatValueImported,
+                      id: floatVariableIdImported,
+                      collectionName: floatCollectionNameImported,
+                      collectionId: floatCollectionId,
+                      location: 'Imported',
+                      searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                    })
+                  }
+                break;
+                default:
+                  // if(importedFloat.scopes.toString().includes('ALL_SCOPES')){
+                    floatObjects.push({
+                      name: floatNameImported,
+                      value: floatValueImported,
+                      id: floatVariableIdImported,
+                      collectionName: floatCollectionNameImported,
+                      collectionId: floatCollectionId,
+                      location: 'Imported',
+                      searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                    })
+                  // }
+                break;
             }
           });
 
-          switch(key){
-            case 'height':
-            case 'width':
-              scopeType = "WIDTH_HEIGHT";
-            break;
-  
-            case 'itemSpacing':
-              scopeType = 'GAP';
-            break;
-  
-            case 'radius':
-              scopeType = 'CORNER_RADIUS';
-            break;
-  
-            case 'characters':
-              scopeType = 'TEXT_CONTENT';
-            break;
-              
-            default:
-              scopeType = 'ALL_SCOPES';
-            break;
-          }
-
-          let conditionalSize = scopeArray.toString().includes(scopeType);
-          if(conditionalSize) {
-            numberVariable.forEach(element => {
-              if(element){
-                writeVariables(element, scopeType, sizeArray);
-              }
-            });
-          } else {      
-            numberVariable.forEach(element => {
-              if(element){
-                writeVariables(element, 'ALL_SCOPES', sizeArray, false);
-              }
-            });
-          }
-          result.setSuggestions(sizeArray.filter(s => s.includes(query)))
-        }
-      break;
-
-      case 'paddingSize':
-        if(figma.variables.getLocalVariables('FLOAT').length === 0){
-          result.setSuggestions(emptyFloatSuggestionArray);
-        } else {
-          let numberVariablePadding = figma.variables.getLocalVariables('FLOAT'),
-              paddingSizeArray: string[] = [];
-          numberVariablePadding.forEach(element => {
-            let firstModeValue = element.valuesByMode[Object.keys(element.valuesByMode)[0]] as Number;
-            let collectionId = element.variableCollectionId;          
-            let getCollectionPadding = figma.variables.getVariableCollectionById(collectionId);
-
-            if(getCollectionPadding){
-              let collectionName = getCollectionPadding.name;
-              paddingSizeArray.push(firstModeValue + 'px (' + element.name + ' - ' + collectionName + ')' );
-            }
+          floatObjects.sort((a, b) => a.value - b.value);
+          
+          const suggestionsFloat = floatObjects
+          .filter(s => s.searchValue.includes(query))
+          .map((s) => {              
+            return ({ 
+              name: s.searchValue,
+              data: {
+                value : s.value,
+                variableID: s.id,
+                collectionId: s.collectionId,
+                localOrImported: s.location,
+              }})
           });
-          result.setSuggestions(paddingSizeArray.filter(s => s.includes(query)))
-        }
+            
+          result.setSuggestions(suggestionsFloat);  
+        });
       break;
 
       case 'paddingPosition':
-        let paddingPositionArray: string[] = ['Top & bottom', 'Left & Right', 'Top', 'Bottom', 'Left', 'Right'];
-        const suggestionsPaddingPosition = paddingPositionArray
-            .filter(s => s.includes(query))
-            .map((s) => {
-              const sizeFixe = 16,
-                    littleSize = 4,
-                    bigSize = 14,
-                    littlePosition = 1,
-                    bigPosition = 11;
-              let paddingWidth = bigSize,
-                  paddingHeight = littleSize,
-                  paddingPositionX = littlePosition,
-                  paddingPositionY = littlePosition,
-                  paddingWidthSecond = bigSize,
-                  paddingHeightSecond = littleSize,
-                  paddingPositionXSecond = littlePosition,
-                  paddingPositionYSecond = bigPosition,
-                  visibilitySecond = "hidden";
+        const sizeFixe = 16,
+              littleSize = 4,
+              bigSize = 14,
+              littlePosition = 1,
+              bigPosition = 11;
+        let paddingPositionArray: any[] = [{
+          searchValue: 'Top & bottom',
+          devValue: ['paddingTop', 'paddingBottom'],
+          paddingWidth: bigSize,
+          paddingHeight: littleSize,
+          paddingPositionX: littlePosition,
+          paddingPositionY: littlePosition,
+          paddingWidthSecond: bigSize,
+          paddingHeightSecond: littleSize,
+          paddingPositionXSecond: littlePosition,
+          paddingPositionYSecond: bigPosition,
+          visibilitySecond: "visible"
+        },
+        {
+          searchValue: 'Left & Right',
+          devValue: ['paddingLeft', 'paddingRight'],
+          paddingWidth: littleSize,
+          paddingHeight: bigSize,
+          paddingPositionX: littlePosition,
+          paddingPositionY: littlePosition,
+          paddingWidthSecond: littleSize,
+          paddingHeightSecond: bigSize,
+          paddingPositionXSecond: bigPosition,
+          paddingPositionYSecond: littlePosition,
+          visibilitySecond: "visible"
+        },
+        {
+          searchValue: 'Top',
+          devValue: ['paddingTop'],
+          paddingWidth: bigSize,
+          paddingHeight: littleSize,
+          paddingPositionX: littlePosition,
+          paddingPositionY: littlePosition,
+          paddingWidthSecond: bigSize,
+          paddingHeightSecond: littleSize,
+          paddingPositionXSecond: littlePosition,
+          paddingPositionYSecond: bigPosition,
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Bottom',
+          devValue: ['paddingBottom'],
+          paddingWidth: bigSize,
+          paddingHeight: littleSize,
+          paddingPositionX: littlePosition,
+          paddingPositionY: bigPosition,
+          paddingWidthSecond: bigSize,
+          paddingHeightSecond: littleSize,
+          paddingPositionXSecond: littlePosition,
+          paddingPositionYSecond: bigPosition,
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Left',
+          devValue: ['paddingLeft'],
+          paddingWidth: littleSize,
+          paddingHeight: bigSize,
+          paddingPositionX: littlePosition,
+          paddingPositionY: littlePosition,
+          paddingWidthSecond: bigSize,
+          paddingHeightSecond: littleSize,
+          paddingPositionXSecond: littlePosition,
+          paddingPositionYSecond: bigPosition,
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Right',
+          devValue: ['paddingRight'],
+          paddingWidth: littleSize,
+          paddingHeight: bigSize,
+          paddingPositionX: bigPosition,
+          paddingPositionY: littlePosition,
+          paddingWidthSecond: bigSize,
+          paddingHeightSecond: littleSize,
+          paddingPositionXSecond: littlePosition,
+          paddingPositionYSecond: bigPosition,
+          visibilitySecond: "hidden"
+        }];
 
-                  switch(s){
-                    case 'Bottom':
-                      paddingPositionY = bigPosition;
-                    break;
-                    case 'Top & bottom':
-                      visibilitySecond = "visible";
-                    break;
-                    case 'Left':
-                      paddingWidth = littleSize;
-                      paddingHeight = bigSize;
-                    break;
-                    case 'Right':
-                      paddingWidth = littleSize;
-                      paddingHeight = bigSize;
-                      paddingPositionX = bigPosition;
-                    break;
-                    case 'Left & Right':
-                      paddingWidth = littleSize;
-                      paddingHeight = bigSize;
-                      paddingWidthSecond = littleSize;
-                      paddingHeightSecond = bigSize;
-                      paddingPositionXSecond = bigPosition;
-                      paddingPositionYSecond = littlePosition;
-                      visibilitySecond = "visible";
-                    break;
-                  }
-                  
-                  return ({ name: s, icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" x="0" y="0"/><rect width="${paddingWidth}" height="${paddingHeight}" x="${paddingPositionX}" y="${paddingPositionY}" rx="1" fill="#0D99FF"/><rect width="${paddingWidthSecond}" height="${paddingHeightSecond}" x="${paddingPositionXSecond}" y="${paddingPositionYSecond}" visibility="${visibilitySecond}" rx="1" fill="#0D99FF"/></svg>`});
+        const suggestionsPaddingPosition = paddingPositionArray
+            .filter(s => s.searchValue.includes(query))
+            .map((s) => {                  
+                  return ({
+                    name: s.searchValue, 
+                    icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" x="0" y="0"/>
+                              <rect width="${s.paddingWidth}" height="${s.paddingHeight}" x="${s.paddingPositionX}" y="${s.paddingPositionY}" rx="1" fill="#0D99FF"/>
+                              <rect width="${s.paddingWidthSecond}" height="${s.paddingHeightSecond}" x="${s.paddingPositionXSecond}" y="${s.paddingPositionYSecond}" visibility="${s.visibilitySecond}" rx="1" fill="#0D99FF"/>
+                            </svg>`,
+                    data: {
+                      value: s.devValue,
+                    }
+                  });
               });
             
         result.setSuggestions(suggestionsPaddingPosition);
       break;
 
+      case 'border_position':
+        // L'applicaiton ne marche pas 
+        const sizeFixeBorder = 16,
+              littleSizeBorder = 4,
+              bigSizeBorder = 14,
+              littlePositionBorder = 1,
+              bigPositionBorder = 11;
+        let borderPositionArray: any[] = [{
+          searchValue: 'All',
+          devValue: ['strokeTopWeight', 'strokeBottomWeight', 'strokeRightWeight' , 'strokeLeftWeight'],
+          borderWidth: sizeFixeBorder,
+          borderHeight: sizeFixeBorder,
+          borderPositionX: 0,
+          borderPositionY: 0,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth: 6,
+          svgBackground: '#FFFFFF',
+          visibilitySecond: "hidden"
+        },{
+          searchValue: 'Top & bottom',
+          devValue: ['strokeTopWeight', 'strokeBottomWeight'],
+          borderWidth: bigSizeBorder,
+          borderHeight: littleSizeBorder,
+          borderPositionX: littlePositionBorder,
+          borderPositionY: littlePositionBorder,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
+          visibilitySecond: "visible"
+        },
+        {
+          searchValue: 'Left & Right',
+          devValue: ['strokeLeftWeight', 'strokeRightWeight'],
+          borderWidth: littleSizeBorder,
+          borderHeight: bigSizeBorder,
+          borderPositionX: littlePositionBorder,
+          borderPositionY: littlePositionBorder,
+          borderWidthSecond: littleSizeBorder,
+          borderHeightSecond: bigSizeBorder,
+          borderPositionXSecond: bigPositionBorder,
+          borderPositionYSecond: littlePositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
+          visibilitySecond: "visible"
+        },
+        {
+          searchValue: 'Top',
+          devValue: ['strokeTopWeight'],
+          borderWidth: bigSizeBorder,
+          borderHeight: littleSizeBorder,
+          borderPositionX: littlePositionBorder,
+          borderPositionY: littlePositionBorder,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Bottom',
+          devValue: ['strokeBottomWeight'],
+          borderWidth: bigSizeBorder,
+          borderHeight: littleSizeBorder,
+          borderPositionX: littlePositionBorder,
+          borderPositionY: bigPositionBorder,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Left',
+          devValue: ['strokeLeftWeight'],
+          borderWidth: littleSizeBorder,
+          borderHeight: bigSizeBorder,
+          borderPositionX: littlePositionBorder,
+          borderPositionY: littlePositionBorder,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
+          visibilitySecond: "hidden"
+        },
+        {
+          searchValue: 'Right',
+          devValue: ['strokeRightWeight'],
+          borderWidth: littleSizeBorder,
+          borderHeight: bigSizeBorder,
+          borderPositionX: bigPositionBorder,
+          borderPositionY: littlePositionBorder,
+          borderWidthSecond: bigSizeBorder,
+          borderHeightSecond: littleSizeBorder,
+          borderPositionXSecond: littlePositionBorder,
+          borderPositionYSecond: bigPositionBorder,
+          strokeWidth : 0,
+          svgBackground: '#0D99FF',
+          visibilitySecond: "hidden"
+        }];        
+
+        // ne s'applique que en full
+        const suggestionsBorderPosition = borderPositionArray
+            .filter(s => s.searchValue.includes(query))
+            .map((s) => {                  
+                  return ({
+                    name: s.searchValue, 
+                    icon: `<svg width="${sizeFixeBorder}" height="${sizeFixeBorder}" viewBox="0 0 ${sizeFixeBorder} ${sizeFixeBorder}" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect width="${sizeFixeBorder}" height="${sizeFixeBorder}" fill="#ffffff" x="0" y="0"/>
+                              <rect width="${s.borderWidth}" height="${s.borderHeight}" x="${s.borderPositionX}" y="${s.borderPositionY}" rx="1" fill="${s.svgBackground}" stroke="#0D99FF" stroke-width="${s.strokeWidth}"/>
+                              <rect width="${s.borderWidthSecond}" height="${s.borderHeightSecond}" x="${s.borderPositionXSecond}" y="${s.borderPositionYSecond}" visibility="${s.visibilitySecond}" rx="1" fill="#0D99FF"/>
+                            </svg>`,
+                    data: {
+                      value: s.devValue,
+                    }
+                  });
+              });
+            
+        result.setSuggestions(suggestionsBorderPosition);
+      break;
+
       case 'radiusPosition':
-        let radiusPositionArray: string[] = ['Top', 'Top left', 'Top right', 'Bottom', 'Bottom left', 'Bottom right', 'Left', 'Right'];
+        let radiusPositionArray: any[] = [{
+          searchValue: 'Top',
+          devValue: ['topLeftRadius', 'topRightRadius'],
+          xPosition: 0,
+          yPosition: 0,
+          height: 26,
+          width: 16
+        },
+        {
+          searchValue: 'Right',
+          devValue: ['bottomRightRadius', 'topRightRadius'],
+          xPosition: -10,
+          yPosition: 0,
+          height: 16,
+          width: 26
+        },
+        {
+          searchValue: 'Bottom',
+          devValue: ['bottomRightRadius', 'bottomLeftRadius'],
+          xPosition: 0,
+          yPosition: -10,
+          height: 26,
+          width: 16
+        },
+        {
+          searchValue: 'Left',
+          devValue: ['bottomLeftRadius', 'topLeftRadius'],
+          xPosition: 0,
+          yPosition: 0,
+          height: 16,
+          width: 26
+        },
+        {
+          searchValue: 'Top left',
+          devValue: ['topLeftRadius'],
+          xPosition: 0,
+          yPosition: 0,
+          height: 26,
+          width: 26
+        },
+        {
+          searchValue: 'Top Right',
+          devValue: ['topRightRadius'],
+          xPosition: -10,
+          yPosition: 0,
+          height: 26,
+          width: 26
+        },
+        {
+          searchValue: 'Bottom Right',
+          devValue: ['bottomRightRadius'],
+          xPosition: -10,
+          yPosition: -10,
+          height: 26,
+          width: 26
+        },
+        {
+          searchValue: 'Bottom Left',
+          devValue: ['bottomLeftRadius'],
+          xPosition: 0,
+          yPosition: -10,
+          height: 26,
+          width: 26
+        }];
         const suggestionsRadius = radiusPositionArray
-            .filter(s => s.includes(query))
+            .filter(s => s.searchValue.includes(query))
             .map((s) => {
               let sizeFixe = 16,
-                  radiusSize = 6,
-                  xPosition = 0,
-                  yPosition = 0,
-                  heightSize = 26,
-                  widthSize = 26;
+                  radiusSize = 6;
 
-              switch(s){
-                case 'Top':                
-                  widthSize = 16;
-                break;
-                case 'Top right':
-                  xPosition = -10;
-                break;
-                case 'Bottom':
-                  yPosition = -10;
-                  widthSize = 16;
-                break;
-                case 'Bottom left':
-                  yPosition = -10;
-                break;
-                case 'Bottom right':
-                  yPosition = -10;
-                  xPosition = -10;
-                break;
-                case 'Right':
-                  xPosition = -10;
-                  heightSize = 16;
-                break;
-                case 'Left':
-                  heightSize = 16;
-                break;
-              }
-
-              return ({ name: s, icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${widthSize}" height="${heightSize}" fill="#ffffff"  rx="${radiusSize}" x="${xPosition}" y="${yPosition}"/></svg>`});
+              return ({ 
+                name: s.searchValue,
+                icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="${s.width}" height="${s.height}" fill="#ffffff"  rx="${radiusSize}" x="${s.xPosition}" y="${s.yPosition}"/>
+                      </svg>`,
+                data: {
+                  value: s.devValue
+                }
+              });
             });
             
         result.setSuggestions(suggestionsRadius);
       break;
-      case 'gap_size':
-        if(figma.variables.getLocalVariables('FLOAT').length === 0){
-          result.setSuggestions(emptyFloatSuggestionArray);
-        } else {
-          let gapNumberVariables = figma.variables.getLocalVariables('FLOAT');
-          let gapCount = 0;
-          let gapSizeArray: string[] = [];
-
-          gapNumberVariables.forEach(numberVariable => {
-            if(numberVariable.scopes.toString().includes('GAP')){    
-              let gapValues = numberVariable.valuesByMode[Object.keys(numberVariable.valuesByMode)[0]].toString();
-              let gapCollectionId = numberVariable.variableCollectionId;
-              let gapCollectionName = figma.variables.getVariableCollectionById(gapCollectionId)?.name;
-                
-              gapSizeArray.push(gapValues + 'px (' + numberVariable.name + ' - ' + gapCollectionName + ')');
-              gapCount++;
-            }
-          });
-
-          if(gapCount == 0) {
-            gapNumberVariables.forEach(numberVariable => {
-              let gapValues = numberVariable.valuesByMode[Object.keys(numberVariable.valuesByMode)[0]].toString();
-              let gapCollectionId = numberVariable.variableCollectionId;
-              let gapCollectionName = figma.variables.getVariableCollectionById(gapCollectionId)?.name;
-
-              gapSizeArray.push(gapValues + 'px (' + numberVariable.name + ' - ' + gapCollectionName + ')');
-            });        
-          }
-          result.setSuggestions(gapSizeArray);
-        }
-      break;
       case 'character':
-        let textArray: string[] = [], 
-            myTextVariables = figma.variables.getLocalVariables('STRING');
-
-        myTextVariables.forEach(textVariable => {
-          let textValue = textVariable.valuesByMode[Object.keys(textVariable.valuesByMode)[0].toString()] as string,
-              textCollectionId = textVariable.variableCollectionId,
-              textCollectionName = figma.variables.getVariableCollectionById(textCollectionId);
-          
-          textArray.push(textValue + ' (' + textVariable.name + ' - ' + textCollectionName?.name + ')')
+        getTextVariable.forEach(text => {
+          const textCollectionId = text.variableCollectionId,
+                textCollectionName = figma.variables.getVariableCollectionById(textCollectionId)?.name,
+                textName = text.name,
+                textVariableId = text.id,
+                textString = text.valuesByMode[Object.keys(text.valuesByMode)[0]];                
+  
+          textObjects.push({
+            name: textName,
+            id: textVariableId,
+            collectionName: textCollectionName,
+            collectionId: textCollectionId,
+            searchValue: textString + ' --> var(--' + textName + ')  / ' + textCollectionName 
+          })        
         });
-        result.setSuggestions(textArray);
+
+        getLibraryCollections().then(() => {
+          importedTextVariable.forEach(importedtext => {
+            const textCollectionId = importedtext.variableCollectionId,
+              textCollectionNameImported = figma.variables.getVariableCollectionById(textCollectionId)?.name,
+              textNameImported = importedtext.name,
+              textVariableIdImported = importedtext.id,
+              textStringImported = importedtext.valuesByMode[Object.keys(importedtext.valuesByMode)[0]];
+
+            textObjects.push({
+              name: textNameImported,
+              id: textVariableIdImported,
+              collectionName: textCollectionNameImported,
+              collectionId: textCollectionId,
+              searchValue: textStringImported + ' --> var(--' + textNameImported + ')  / ' + textCollectionNameImported 
+            })  
+            
+          });     
+          const suggestionsColor = textObjects
+            .filter(s => s.searchValue.includes(query))
+            .map((s, index) => {
+              const currentText = textObjects[index]
+              return ({ 
+                name: s.searchValue,
+                data: {
+                  variableID: currentText.id,
+                  collectionId: currentText.collectionId,
+                }})
+            });
+            
+        result.setSuggestions(suggestionsColor);     
+        });
       break;
     }
-  }
+  // }
 })
 
 figma.on('run', ({ command, parameters }: RunEvent) => {
-  if(parameters){
+  if(parameters){    
     let myNumberVariables = figma.variables.getLocalVariables('FLOAT'),
         myColorVariables = figma.variables.getLocalVariables('COLOR'),
         myStringVariables = figma.variables.getLocalVariables('STRING'),
@@ -342,53 +854,51 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
 
     switch(command) {
       case 'color':
-        if(mySelection.length > 0){
+        let selectedColorVariable = figma.variables.getVariableById(key.variableID);
+        if(mySelection.length > 0){          
           mySelection.forEach(selectedObject => {
-            myColorVariables.forEach(colorElement => {
-              if(key.includes(colorElement.name.toLowerCase())){
-                if ('fills' in selectedObject) {
-                  if(selectedObject.fills.toLocaleString() === ""){
-                    selectedObject.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
-                  }
-                  const fillsCopy = clone(selectedObject.fills);
-                  fillsCopy[0] = figma.variables.setBoundVariableForPaint(fillsCopy[0], 'color', colorElement)
-                  selectedObject.fills = fillsCopy
-                }
+            if ('fills' in selectedObject && selectedColorVariable) {
+              if(selectedObject.fills.toLocaleString() === ""){
+                selectedObject.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
               }
-            });          
+              const fillsCopy = clone(selectedObject.fills);
+              fillsCopy[0] = figma.variables.setBoundVariableForPaint(fillsCopy[0], 'color', selectedColorVariable)
+              selectedObject.fills = fillsCopy
+            }
           });
         } else {
-          figma.notify('Please select an item')
-        }
-        
+          figma.notify('Please, select an item')
+        }        
       break;
 
       case 'border':
-        let complexParametresKey = Object.keys(parameters);           
+        let borderColorID = parameters['border_color']?.variableID,
+            currentColorVariable = figma.variables.getVariableById(borderColorID);
+
         if(mySelection.length > 0){
           mySelection.forEach(selectedObject => {
-            myColorVariables.forEach(colorElement => {
-              let complexParametre = parameters[complexParametresKey[0]].toLowerCase();
-              if(complexParametre.includes(colorElement.name.toLowerCase()) && 'strokes' in selectedObject){
-                if(selectedObject.strokes.length === 0){                    
-                  selectedObject.strokes = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
-                  selectedObject.strokeWeight = 1;
-                }
-                const strokesCopy = clone(selectedObject.strokes);
-                strokesCopy[0] = figma.variables.setBoundVariableForPaint(strokesCopy[0], 'color', colorElement);
-                selectedObject.strokes = strokesCopy;
-  
-                if(parameters.border_width != undefined){
-                  const numberStrokeWidth = extractNumber(parameters.border_width) as number;
-                  selectedObject.strokeWeight = numberStrokeWidth;
-                }
+            if('strokes' in selectedObject && currentColorVariable){
+              if(selectedObject.strokes.toString() === ''){
+                selectedObject.strokes = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
               }
-            });          
+              const strokesCopy = clone(selectedObject.strokes);
+              
+              strokesCopy[0] = figma.variables.setBoundVariableForPaint(strokesCopy[0], 'color', currentColorVariable)
+              selectedObject.strokes = strokesCopy
+              if(parameters['border_width'] != undefined){
+                if(parameters['border_position'] != undefined){
+                  parameters['border_position'].value.forEach((borderPosition: any) => {
+                    selectedObject.setBoundVariable(borderPosition, parameters['border_width'].variableID)
+                  });
+                } else {
+                  selectedObject.setBoundVariable('strokeWeight', parameters['border_width'].variableID);
+                }    
+              }
+            }
           });
         } else {
-          figma.notify('Please select an item')
+          figma.notify('Please, select an item')
         }
-        
       break;
 
       case 'height':
@@ -397,63 +907,35 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
       case 'maxWidth':
       case 'minHeight':
       case 'maxHeight':
-        if(mySelection.length > 0){
-          mySelection.forEach(selectedObject => {            
-            myNumberVariables.forEach(numberElement => {
-              if(key.toLowerCase().includes(numberElement.name.toLowerCase())){
-                selectedObject.setBoundVariable(command, numberElement.id);
-              }
-            });
+      let selectedfloatVariable = figma.variables.getVariableById(key.variableID);
+        if(mySelection.length > 0){          
+          mySelection.forEach(selectedObject => {
+            if (selectedfloatVariable) {
+              selectedObject.setBoundVariable(command, selectedfloatVariable.id);
+            }
           });
         } else {
-          figma.notify('Please select an item')
+          figma.notify('Please, select an item')
         }
       break;
 
       case 'padding':
-        const paddingTypeArray: string[] = ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'];
-        let complexPaddingParametresKey = Object.keys(parameters),
-            parametersPaddingLenght = complexPaddingParametresKey.length;                        
+        const paddingSizeVariableID = parameters['paddingSize'].variableID as string;
+                                
         if(mySelection.length > 0){
           mySelection.forEach(selectedObject => {
             if(mySelection[0].type == 'FRAME' && mySelection[0].layoutMode != 'NONE'){
-              myNumberVariables.forEach(floatElement => {
-                let complexPaddingParametre = parameters[complexPaddingParametresKey[0]].toLowerCase();
-                if(complexPaddingParametre.includes(floatElement.name.toLowerCase())){
-                  paddingTypeArray.forEach(paddingType => {
-                    if(parametersPaddingLenght == 1){
-                      if(paddingType == "paddingLeft" || paddingType == "paddingRight" || paddingType == "paddingBottom" || paddingType == "paddingTop"){
-                        selectedObject.setBoundVariable(paddingType, floatElement.id);
-                      }
-                    } else if(parametersPaddingLenght == 2){
-                      switch(parameters[complexPaddingParametresKey[1]]){
-                        case 'Top & bottom':
-                          if(paddingType == "paddingBottom" || paddingType == "paddingTop"){
-                            selectedObject.setBoundVariable(paddingType, floatElement.id);
-                          }
-                        break;
-                        case 'Left & Right':
-                          if(paddingType == "paddingLeft" || paddingType == "paddingRight"){
-                            selectedObject.setBoundVariable(paddingType, floatElement.id);
-                          }
-                        break;
-                        case 'Right':
-                            selectedObject.setBoundVariable('paddingRight', floatElement.id);
-                        break;
-                        case 'Left':
-                            selectedObject.setBoundVariable('paddingLeft', floatElement.id);
-                        break;
-                        case 'Bottom':
-                            selectedObject.setBoundVariable('paddingBottom', floatElement.id);
-                        break;
-                        case 'Top':
-                            selectedObject.setBoundVariable('paddingTop', floatElement.id);
-                        break;
-                      } 
-                    }
-                  });
-                }
-              });  
+              if(parameters['paddingPosition']){
+                let paddingPositionParameter = parameters['paddingPosition'].value;
+                paddingPositionParameter.forEach((paddingPosition: any) => {
+                  selectedObject.setBoundVariable(paddingPosition, paddingSizeVariableID);
+                });
+              } else {
+                selectedObject.setBoundVariable('paddingBottom', paddingSizeVariableID);
+                selectedObject.setBoundVariable('paddingTop', paddingSizeVariableID);
+                selectedObject.setBoundVariable('paddingRight', paddingSizeVariableID);
+                selectedObject.setBoundVariable('paddingLeft', paddingSizeVariableID);
+              }
             } else {
               figma.notify("Auto layout required for padding... Sorry")
             }     
@@ -461,54 +943,22 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
         } else {
           figma.notify('Please select an item')
         }
-        
       break;
 
       case 'radius':
-        let radiusLoopCount = 0;
+        const radiusSizeVariableID = parameters['radius'].variableID as string;
+        // let radiusLoopCount = 0;
         if(figma.currentPage.selection.length > 0){
           mySelection.forEach(selectedObject => {
-            if(selectedObject){
-              const maSelection: RectangleNode = figma.currentPage.selection[radiusLoopCount] as RectangleNode;
-              myNumberVariables.forEach(numberVariable => {
-                if(key.toLowerCase().includes(numberVariable.name.toLocaleLowerCase())){
-                  const radiusPositionsArray = {
-                    'Top': ['topLeftRadius', 'topRightRadius'],
-                    'Top left': ['topLeftRadius'],
-                    'Top right': ['topRightRadius'],
-                    'Bottom': ['bottomLeftRadius', 'bottomRightRadius'],
-                    'Bottom left': ['bottomLeftRadius'],
-                    'Bottom right': ['bottomRightRadius'],
-                    'Left': ['topLeftRadius', 'bottomLeftRadius'],
-                    'Right': ['topRightRadius', 'bottomRightRadius'],
-                  } as any;
-
-                  switch(parameters.radiusPosition){
-                    case 'Top':
-                    case 'Top left':
-                    case 'Top right':
-                    case 'Bottom':
-                    case 'Bottom left':
-                    case 'Bottom right':
-                    case 'Left':
-                    case 'Right':
-                      let radiusPositionString = parameters.radiusPosition.toString();
-
-                      radiusPositionsArray[radiusPositionString].forEach((position: any) => {
-                        maSelection.setBoundVariable(position, numberVariable.id);
-                      });
-                    break;
-  
-                    default:
-                      maSelection.setBoundVariable('topLeftRadius', numberVariable.id);
-                      maSelection.setBoundVariable('topRightRadius', numberVariable.id);
-                      maSelection.setBoundVariable('bottomLeftRadius', numberVariable.id);
-                      maSelection.setBoundVariable('bottomRightRadius', numberVariable.id);
-                    break;
-                  }
-                }
+            if(parameters['radiusPosition']){
+              parameters['radiusPosition'].value.forEach((radiusPosition: any) => {
+                selectedObject.setBoundVariable(radiusPosition, radiusSizeVariableID);
               });
-              radiusLoopCount++;
+            } else {
+              selectedObject.setBoundVariable('bottomLeftRadius' , radiusSizeVariableID)
+              selectedObject.setBoundVariable('bottomRightRadius' , radiusSizeVariableID)
+              selectedObject.setBoundVariable('topLeftRadius' , radiusSizeVariableID)
+              selectedObject.setBoundVariable('topRightRadius' , radiusSizeVariableID)
             }
           });
         } else {
@@ -516,39 +966,929 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
         }
       break;
       case 'gap':
-        let parameterKey = parameters[Object.keys(parameters).toString()];
+        let parameterKey = parameters[Object.keys(parameters).toString()];        
         if(mySelection.length > 0){
           mySelection.forEach(selectedObject => {
             if(mySelection[0].type == 'FRAME' && mySelection[0].layoutMode != 'NONE' && 'layoutMode' in selectedObject){
-              myNumberVariables.forEach(numberVariables => {
-                if(parameterKey.toLowerCase().includes(numberVariables.name.toLowerCase())){
-                  selectedObject.setBoundVariable('itemSpacing', numberVariables.id);
-                  selectedObject.setBoundVariable('counterAxisSpacing', numberVariables.id);
-                }
-              });
+              selectedObject.setBoundVariable("itemSpacing", parameterKey.variableID)
+              selectedObject.setBoundVariable("counterAxisSpacing", parameterKey.variableID)
             }
           });
         } else {
           figma.notify('Please select an item')
         }
       break;
-      case 'character':
+      case 'character':        
         if(mySelection.length > 0){
           mySelection.forEach(selectedObject => {
-            myStringVariables.forEach(stringVariable => {
-              let textValueByMode = stringVariable.valuesByMode[Object.keys(stringVariable.valuesByMode)[0]].toString();
-              if(key.toLowerCase().includes(textValueByMode.toLocaleLowerCase())){
-                if(selectedObject.type == 'TEXT'){
-                  selectedObject.setBoundVariable('characters', stringVariable.id);
-                } else {
-                  figma.notify('Please select a text layer')
-                }
-              }
-            });
+            if(selectedObject.type == 'TEXT'){
+              selectedObject.setBoundVariable('characters', parameters[command].variableID)
+            } else {
+              figma.notify('Please select a text layer')
+            }
           });
         } else {
           figma.notify('Please select an item')
         }
+      break;
+      case 'opacity':
+        if(mySelection.length > 0){
+          mySelection.forEach(selectedObject => {
+              selectedObject.setBoundVariable('opacity', parameters[command].variableID)
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+      break;
+      // case 'layerBlur':
+      //   // Fonctionne pour l'ajout mais pas pour la modification
+      //   let currentBlurSizeVariable = figma.variables.getVariableById(parameters['layerBlurSize'].variableID),
+      //       blurEffectsCounter = 0;
+
+      //   if(mySelection.length > 0){
+      //     mySelection.forEach(blur => {            
+      //       if('effects' in blur){
+      //         // detecter la longueur de effect car en l'état il sera toujours à 0 car le blur effect est resset, il sera toujours à zero car un seul blur est autorisé, mais il ne faut pas reset tout l'effet, peu etre le cloner avant si blur effect le supprimer et ajouter les effet avant dan le tableau
+      //         if(blurEffectsCounter == 0){
+      //             blur.effects = [{ 
+      //             type: 'LAYER_BLUR',
+      //             radius: 10,
+      //             visible: true,
+      //             boundVariables: {
+      //               radius : {
+      //                 id: parameters['layerBlurSize'].variableID,
+      //                 type: 'VARIABLE_ALIAS'
+      //               }
+      //             }
+      //           }];
+      //         }
+
+      //         let effectsCopy = clone(blur.effects);
+      //         effectsCopy.forEach((currentEffectCopy: any) => {
+      //           if(currentEffectCopy.type == 'LAYER_BLUR'){                  
+      //             if(currentBlurSizeVariable){
+      //               effectsCopy[blurEffectsCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[blurEffectsCounter], 'radius', currentBlurSizeVariable)
+      //             }
+      //             blur.effects = effectsCopy;                  
+      //             blurEffectsCounter++;
+      //           }
+      //         });
+      //       }          
+      //     });
+      //   } else {
+      //     figma.notify('Please select an item')
+      //   }
+      // break;
+      case 'dropShadow':
+      case 'innerShadow':
+        let currentShadowXVariable = figma.variables.getVariableById(parameters['shadowX'].variableID),
+            currentShadowYVariable = figma.variables.getVariableById(parameters['shadowY'].variableID),
+            currentShadowBlurVariable = figma.variables.getVariableById(parameters['shadowBlur'].variableID),
+            currentShadowColorVariable = figma.variables.getVariableById(parameters['shadowColor'].variableID);
+
+        if(mySelection.length > 0){
+          mySelection.forEach(shadow => {
+            if('effects' in shadow){
+              let shadowArrayCounter = 0;
+              
+              let globalCounter = effectsCounter(shadow);
+              switch(command){
+                case 'dropShadow':
+                  if(globalCounter.dropShadow == 0){
+                    let effectsArray = shadow.effects,
+                        temporaryCopyEffects = [...effectsArray];
+                    
+                    temporaryCopyEffects.forEach((temporaryCopy, index) => {                  
+                      switch(temporaryCopy.type){
+                        case 'LAYER_BLUR':
+                        case 'BACKGROUND_BLUR':
+                          let temporaryBoundVariable = {...temporaryCopy};
+    
+                          if(temporaryCopy.boundVariables){
+                            for(let radiusKey in temporaryCopy.boundVariables){
+                              if(radiusKey == 'radius'){
+                                  let radiusCopy = temporaryCopy.boundVariables[radiusKey];
+    
+                                if(radiusCopy?.id){
+                                    temporaryBoundVariable.boundVariables = {radius: {type: radiusCopy?.type || 'VARIABLE_ALIAS', id: radiusCopy?.id}};
+                                }
+                                
+                                temporaryCopy = temporaryBoundVariable;
+                                temporaryCopyEffects[index] = temporaryCopy;
+                              }
+                            }
+                          }
+                        break;
+                      }
+                    });
+    
+                    shadow.effects = temporaryCopyEffects;
+    
+                    temporaryCopyEffects.push({
+                      type: 'DROP_SHADOW',
+                      radius: 10,
+                      offset: { x: 4, y: 4 },
+                      spread: 0,
+                      color: { r: 0, g: 0, b: 0, a: 0.25 },
+                      visible: true,
+                      blendMode: 'NORMAL', 
+                      boundVariables: {}
+                    })
+                    shadow.effects = temporaryCopyEffects;
+                  }
+                break;
+                case 'innerShadow':
+                  if(globalCounter.innerShadow == 0){
+                    let effectsArray = shadow.effects,
+                        temporaryCopyEffects = [...effectsArray];
+                    
+                    temporaryCopyEffects.forEach((temporaryCopy, index) => {                  
+                      switch(temporaryCopy.type){
+                        case 'LAYER_BLUR':
+                        case 'BACKGROUND_BLUR':
+                          let temporaryBoundVariable = {...temporaryCopy};
+    
+                          if(temporaryCopy.boundVariables){
+                            for(let radiusKey in temporaryCopy.boundVariables){
+                              if(radiusKey == 'radius'){
+                                  let radiusCopy = temporaryCopy.boundVariables[radiusKey];
+    
+                                if(radiusCopy?.id){
+                                    temporaryBoundVariable.boundVariables = {radius: {type: radiusCopy?.type || 'VARIABLE_ALIAS', id: radiusCopy?.id}};
+                                }
+                                
+                                temporaryCopy = temporaryBoundVariable;
+                                temporaryCopyEffects[index] = temporaryCopy;
+                              }
+                            }
+                          }
+                        break;
+                      }
+                    });
+    
+                    shadow.effects = temporaryCopyEffects;
+    
+                    temporaryCopyEffects.push({
+                      type: 'INNER_SHADOW',
+                      radius: 10,
+                      offset: { x: 4, y: 4 },
+                      spread: 0,
+                      color: { r: 0, g: 0, b: 0, a: 0.25 },
+                      visible: true,
+                      blendMode: 'NORMAL', 
+                      boundVariables: {}
+                    })
+                    shadow.effects = temporaryCopyEffects;
+                  }
+                break;
+              }
+              
+
+              let effectsCopy = clone(shadow.effects);              
+
+              effectsCopy.forEach((currentEffectCopy: any) => {
+                switch(command){
+                  case 'dropShadow':
+                    if(currentEffectCopy.type == 'DROP_SHADOW'){
+                      if(currentShadowBlurVariable && currentShadowXVariable && currentShadowYVariable && currentShadowColorVariable != undefined){
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'radius', currentShadowBlurVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'offsetX', currentShadowXVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'offsetY', currentShadowYVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'color', currentShadowColorVariable)
+                      }
+                      if(parameters['shadowSpread'] != undefined){
+                        let currentShadowSpreadVariable = figma.variables.getVariableById(parameters['shadowSpread'].variableID)
+                        if(currentShadowSpreadVariable){                      
+                          effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'spread', currentShadowSpreadVariable); 
+                        }
+                      }
+                      shadow.effects = effectsCopy;                  
+                    }
+                  break;
+
+                  case 'innerShadow':
+                    if(currentEffectCopy.type == 'INNER_SHADOW'){
+                      if(currentShadowBlurVariable && currentShadowXVariable && currentShadowYVariable && currentShadowColorVariable != undefined){
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'radius', currentShadowBlurVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'offsetX', currentShadowXVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'offsetY', currentShadowYVariable)
+                        effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'color', currentShadowColorVariable)
+                      }
+                      if(parameters['shadowSpread'] != undefined){
+                        let currentShadowSpreadVariable = figma.variables.getVariableById(parameters['shadowSpread'].variableID)
+                        if(currentShadowSpreadVariable){                      
+                          effectsCopy[shadowArrayCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[shadowArrayCounter], 'spread', currentShadowSpreadVariable); 
+                        }
+                      }
+                      shadow.effects = effectsCopy;                  
+                    }
+                  break;
+                }
+                
+                shadowArrayCounter++;
+              });
+            }          
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+      break;
+      case 'backgroundBlur':
+      case 'layerBlur':
+        if(mySelection.length > 0){
+          mySelection.forEach(blur => {    
+            let globalCounter = effectsCounter(blur)    
+            
+            if('effects' in blur){
+              if(globalCounter.backgroundBlur > 0){
+                let effectsCopy = clone(blur.effects);
+                let notBackgroundBlurArray: any[] = [];
+                effectsCopy.forEach((currentEffectCopy: any) => {
+                  switch(command){
+                    case 'backgroundBlur':
+                      if(currentEffectCopy.type != 'BACKGROUND_BLUR'){
+                        notBackgroundBlurArray.push(currentEffectCopy);
+                      }
+                    break;
+                    case 'layerBlur':
+                      if(currentEffectCopy.type != 'LAYER_BLUR'){
+                        notBackgroundBlurArray.push(currentEffectCopy);
+                      }
+                    break;
+                  }
+                  
+                });
+                blur.effects = notBackgroundBlurArray;
+              }
+              let effectsArray = blur.effects,
+                  temporaryCopyEffects = [...effectsArray];
+              switch(command){
+                case 'backgroundBlur':
+                  temporaryCopyEffects.push({
+                    type: 'BACKGROUND_BLUR',
+                    radius: parameters['backgroundBlurSize'].value,
+                    visible: true,
+                    boundVariables: {
+                      radius : {
+                        id: parameters['backgroundBlurSize'].variableID,
+                        type: 'VARIABLE_ALIAS'
+                      }
+                    }
+                  })
+                break;
+                case 'layerBlur':
+                  temporaryCopyEffects.push({
+                    type: 'LAYER_BLUR',
+                    radius: parameters['layerBlurSize'].value,
+                    visible: true,
+                    boundVariables: {
+                      radius : {
+                        id: parameters['layerBlurSize'].variableID,
+                        type: 'VARIABLE_ALIAS'
+                      }
+                    }
+                  })
+                break;
+              }              
+              blur.effects = temporaryCopyEffects;
+            }          
+          });
+        } else {
+          figma.notify('Please select an item')
+        }
+      break;
+      case 'grid':
+        let selectedGridSizeVariable = figma.variables.getVariableById(parameters['gridSize'].variableID);
+
+        mySelection.forEach(selectedObject => {
+          if('layoutGrids' in selectedObject){
+            let layoutGridCopy = clone(selectedObject.layoutGrids);
+            let gridLayoutTypeCounter = gridCounter(selectedObject);
+
+            if(gridLayoutTypeCounter.grid == 0){
+              layoutGridCopy.push({
+                    "pattern": "GRID",
+                    "visible": true,
+                    "color": {
+                        "r": 1,
+                        "g": 0,
+                        "b": 0,
+                        "a": 0.10000000149011612
+                    },
+                    "boundVariables": {
+                        "sectionSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['gridSize'].variableID
+                        }
+                    },
+                    "sectionSize": parameters['gridSize'].value
+                })        
+            } else {
+              layoutGridCopy.forEach((gridItem: any, index: number) => {              
+                if(gridItem.pattern == 'GRID' && selectedGridSizeVariable){
+                  layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridSizeVariable)
+                }
+              });
+            }
+            selectedObject.layoutGrids = layoutGridCopy; 
+          }
+        });
+      break;
+      case 'gridColumnCenter':
+        let selectedGridColumnNumberVariable = figma.variables.getVariableById(parameters['colCountCenter'].variableID),
+            selectedGridColumnWidthVariable = figma.variables.getVariableById(parameters['colWidthCenter'].variableID),
+            selectedGridColumnGutterVariable = figma.variables.getVariableById(parameters['colGutterCenter'].variableID)
+
+            mySelection.forEach(selectedObject => {
+              if(selectedObject.type == "FRAME"){
+                if('layoutGrids' in selectedObject){
+                  let layoutGridCopy = clone(selectedObject.layoutGrids);
+                  let gridLayoutTypeCounter = gridCounter(selectedObject);
+
+                  if(gridLayoutTypeCounter.col == 0){                                    
+                    layoutGridCopy.push({
+                        alignment: "CENTER",
+                        boundVariables: {
+                          "count": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colCountCenter'].variableID
+                          },
+                          "sectionSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colWidthCenter'].variableID
+                          },
+                          "gutterSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colGutterCenter'].variableID
+                          }
+                        },
+                        color: {r: 1, g: 0, b: 0, a: 0.10000000149011612},
+                        count: parameters['colCountCenter'].value,
+                        gutterSize: parameters['colGutterCenter'].value,
+                        sectionSize: parameters['colWidthCenter'].value,
+                        pattern: "COLUMNS",
+                        visible: true
+                      })
+                  } else {
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {  
+                      if(gridItem.pattern == 'COLUMNS'){ 
+                        if(gridItem.alignment != "CENTER"){
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "CENTER";
+                          switch(gridItem.alignment){
+                            case 'MIN':
+                            case 'MAX':
+                              delete gridItemClone.offset;
+                              delete gridItemClone.boundVariables.offset;
+                            break;
+                            case 'STRETCH':
+                              delete gridItemClone.offset;
+                              delete gridItemClone.boundVariables.offset;
+                              gridItemClone.sectionSize = parameters['colWidthCenter'].value;
+                              gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['colWidthCenter'].variableID};
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;
+                        } else{
+                          if(selectedGridColumnNumberVariable && selectedGridColumnGutterVariable && selectedGridColumnWidthVariable){
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridColumnWidthVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterVariable)
+                          }
+                        } 
+                      }
+                    });
+                  }
+                  selectedObject.layoutGrids
+                  selectedObject.layoutGrids = layoutGridCopy; 
+                }
+              }
+            });
+      break;
+      case 'gridColumnStretch':
+        let selectedGridColumnNumberStretchVariable = figma.variables.getVariableById(parameters['colCountStretch'].variableID),
+            selectedGridColumnMarginStretchVariable = figma.variables.getVariableById(parameters['colMarginStretch'].variableID),
+            selectedGridColumnGutterStretchVariable = figma.variables.getVariableById(parameters['colGutterStretch'].variableID)
+            
+            mySelection.forEach(selectedObject => {
+              if(selectedObject.type == "FRAME"){
+                if('layoutGrids' in selectedObject){
+                  let layoutGridCopy = clone(selectedObject.layoutGrids);
+                  let gridLayoutTypeCounter = gridCounter(selectedObject);
+                  
+                  if(gridLayoutTypeCounter.col == 0){  
+                    layoutGridCopy.push({
+                        alignment: "STRETCH",
+                        boundVariables: {
+                          "count": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colCountStretch'].variableID
+                          },
+                          "offset": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colMarginStretch'].variableID
+                          },
+                          "gutterSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colGutterStretch'].variableID
+                          }
+                        },
+                        color: {r: 1, g: 0, b: 0, a: 0.10000000149011612},
+                        count: parameters['colCountStretch'].value,
+                        gutterSize: parameters['colGutterStretch'].value,
+                        offset: parameters['colMarginStretch'].value,
+                        pattern: "COLUMNS",
+                        visible: true
+                      })
+                  } else {
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {
+                      if(gridItem.pattern == 'COLUMNS'){
+                        if(gridItem.alignment != "STRETCH"){
+                        
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "STRETCH";
+                          switch(gridItem.alignment){
+                            case 'MIN':
+                            case 'MAX':
+                              delete gridItemClone.sectionSize;
+                              delete gridItemClone.boundVariables.sectionSize;
+                            break;
+                            case 'CENTER':
+                              delete gridItemClone.sectionSize;
+                              delete gridItemClone.boundVariables.sectionSize;
+                              gridItemClone.offset = parameters['colMarginStretch'].value;
+                              gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['colMarginStretch'].variableID};                            
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;                         
+                        } else{
+                          if(selectedGridColumnNumberStretchVariable && selectedGridColumnGutterStretchVariable && selectedGridColumnMarginStretchVariable){
+                            layoutGridCopy[index].alignment = 'STRETCH';
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberStretchVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridColumnMarginStretchVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterStretchVariable)
+                          }
+                        }
+                      }
+                    });
+                  }
+                  selectedObject.layoutGrids = layoutGridCopy; 
+                }
+              }
+            });
+      break;
+      case 'gridColumnLeft':
+        let selectedGridColumnNumberLeftVariable = figma.variables.getVariableById(parameters['colCountLeft'].variableID),
+            selectedGridColumnWidthLeftVariable = figma.variables.getVariableById(parameters['colWidthLeft'].variableID),
+            selectedGridColumnMarginLeftVariable = figma.variables.getVariableById(parameters['colMarginLeft'].variableID),
+            selectedGridColumnGutterLeftVariable = figma.variables.getVariableById(parameters['colGutterLeft'].variableID)
+            
+            mySelection.forEach(selectedObject => {
+              if(selectedObject.type == "FRAME"){
+                if('layoutGrids' in selectedObject){
+                  let layoutGridCopy = clone(selectedObject.layoutGrids);
+                  let gridLayoutTypeCounter = gridCounter(selectedObject);
+                  
+                  if(gridLayoutTypeCounter.col == 0){  
+                    layoutGridCopy.push({
+                        alignment: "MIN",
+                        boundVariables: {
+                          "count": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colCountLeft'].variableID
+                          },
+                          "offset": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colMarginLeft'].variableID
+                          },
+                          "sectionSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colWidthLeft'].variableID
+                          },
+                          "gutterSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colGutterLeft'].variableID
+                          }
+                        },
+                        color: {r: 1, g: 0, b: 0, a: 0.10000000149011612},
+                        count: parameters['colCountLeft'].value,
+                        gutterSize: parameters['colGutterLeft'].value,
+                        offset: parameters['colMarginLeft'].value,
+                        sectionSize: parameters['colWidthLeft'].value,
+                        pattern: "COLUMNS",
+                        visible: true
+                      })
+                  } else {
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {
+                      if(gridItem.pattern == 'COLUMNS'){
+                        if(gridItem.alignment != "MIN"){
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "MIN";
+                          
+                          switch(gridItem.alignment){
+                            case 'STRETCH':
+                              gridItemClone.sectionSize = parameters['colWidthLeft'].value;
+                              gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['colWidthLeft'].variableID};
+                            break;
+                            case 'CENTER':
+                              gridItemClone.offset = parameters['colMarginLeft'].value;
+                              gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['colMarginLeft'].variableID};
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;
+                        } else{                         
+                          if(selectedGridColumnNumberLeftVariable && selectedGridColumnWidthLeftVariable && selectedGridColumnMarginLeftVariable && selectedGridColumnGutterLeftVariable){
+                            layoutGridCopy[index].alignment = 'MIN';
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberLeftVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridColumnMarginLeftVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterLeftVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridColumnWidthLeftVariable)
+                          }
+                        }
+                      }
+                    });
+                  }
+                  selectedObject.layoutGrids = layoutGridCopy; 
+                }
+              }
+            });
+      break;
+      case 'gridColumnRight':
+        let selectedGridColumnNumberRightVariable = figma.variables.getVariableById(parameters['colCountRight'].variableID),
+            selectedGridColumnWidthRightVariable = figma.variables.getVariableById(parameters['colWidthRight'].variableID),
+            selectedGridColumnMarginRightVariable = figma.variables.getVariableById(parameters['colMarginRight'].variableID),
+            selectedGridColumnGutterRightVariable = figma.variables.getVariableById(parameters['colGutterRight'].variableID)
+            
+            mySelection.forEach(selectedObject => {
+              if(selectedObject.type == "FRAME"){
+                if('layoutGrids' in selectedObject){
+                  let layoutGridCopy = clone(selectedObject.layoutGrids);
+                  let gridLayoutTypeCounter = gridCounter(selectedObject);
+                  
+                  if(gridLayoutTypeCounter.col == 0){  
+                    layoutGridCopy.push({
+                        alignment: "MAX",
+                        boundVariables: {
+                          "count": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colCountRight'].variableID
+                          },
+                          "offset": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colMarginRight'].variableID
+                          },
+                          "sectionSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colWidthRight'].variableID
+                          },
+                          "gutterSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['colGutterRight'].variableID
+                          }
+                        },
+                        color: {r: 1, g: 0, b: 0, a: 0.10000000149011612},
+                        count: parameters['colCountRight'].value,
+                        gutterSize: parameters['colGutterRight'].value,
+                        offset: parameters['colMarginRight'].value,
+                        sectionSize: parameters['colWidthRight'].value,
+                        pattern: "COLUMNS",
+                        visible: true
+                      })
+                  } else {
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {
+                      if(gridItem.pattern == 'COLUMNS'){
+                        if(gridItem.alignment != "MAX"){
+                          
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "MAX";
+                          
+                          switch(gridItem.alignment){
+                            case 'STRETCH':
+                              gridItemClone.sectionSize = parameters['colWidthRight'].value;
+                              gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['colWidthRight'].variableID};
+                            break;
+                            case 'CENTER':
+                              gridItemClone.offset = parameters['colMarginRight'].value;
+                              gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['colMarginRight'].variableID};
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;
+                        } else{
+                          if(selectedGridColumnNumberRightVariable && selectedGridColumnWidthRightVariable && selectedGridColumnMarginRightVariable && selectedGridColumnGutterRightVariable){
+                            layoutGridCopy[index].alignment = 'MAX';
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridColumnNumberRightVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridColumnMarginRightVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridColumnGutterRightVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridColumnWidthRightVariable)
+                          }
+                        }
+                      }
+                    });
+                  }
+                  selectedObject.layoutGrids = layoutGridCopy; 
+                }
+              } else {
+                figma.notify('Please select a frame')
+              }
+            });
+      break;
+      case 'gridRowCenter':
+        let selectedGridRowNumberVariable = figma.variables.getVariableById(parameters['rowCountCenter'].variableID),
+            selectedGridRowWidthVariable = figma.variables.getVariableById(parameters['rowWidthCenter'].variableID),
+            selectedGridRowGutterVariable = figma.variables.getVariableById(parameters['rowGutterCenter'].variableID)
+
+            mySelection.forEach(selectedObject => {
+              if(selectedObject.type == "FRAME"){
+                if('layoutGrids' in selectedObject){
+                  let layoutGridCopy = clone(selectedObject.layoutGrids);
+                  let gridLayoutTypeCounter = gridCounter(selectedObject);
+
+                  if(gridLayoutTypeCounter.row == 0){                                    
+                    layoutGridCopy.push({
+                        alignment: "CENTER",
+                        boundVariables: {
+                          "count": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowCountCenter'].variableID
+                          },
+                          "sectionSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowWidthCenter'].variableID
+                          },
+                          "gutterSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowGutterCenter'].variableID
+                          }
+                        },
+                        color: {r: 1, g: 0, b: 0, a: 0.10000000149011612},
+                        count: parameters['rowCountCenter'].value,
+                        gutterSize: parameters['rowGutterCenter'].value,
+                        sectionSize: parameters['rowWidthCenter'].value,
+                        pattern: "ROWS",
+                        visible: true
+                      })
+                  } else {
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {  
+                      if(gridItem.pattern == 'ROWS'){ 
+                        if(gridItem.alignment != "CENTER"){
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "CENTER";
+                          switch(gridItem.alignment){
+                            case 'MIN':
+                            case 'MAX':
+                              delete gridItemClone.offset;
+                              delete gridItemClone.boundVariables.offset;
+                            break;
+                            case 'STRETCH':
+                              delete gridItemClone.offset;
+                              delete gridItemClone.boundVariables.offset;
+                              gridItemClone.sectionSize = parameters['rowWidthCenter'].value;
+                              gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['rowWidthCenter'].variableID};
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;
+                        } else{
+                          if(selectedGridRowNumberVariable && selectedGridRowGutterVariable && selectedGridRowWidthVariable){
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridRowNumberVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridRowWidthVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridRowGutterVariable)
+                          }
+                        } 
+                      }
+                    });
+                  }
+                  selectedObject.layoutGrids
+                  selectedObject.layoutGrids = layoutGridCopy; 
+                }
+              }
+            });
+      break;
+      case 'gridRowStretch':
+        let selectedGridRowNumberStretchVariable = figma.variables.getVariableById(parameters['rowCountStretch'].variableID),
+            selectedGridRowMarginStretchVariable = figma.variables.getVariableById(parameters['rowMarginStretch'].variableID),
+            selectedGridRowGutterStretchVariable = figma.variables.getVariableById(parameters['rowGutterStretch'].variableID)
+            
+            mySelection.forEach(selectedObject => {
+              if(selectedObject.type == "FRAME"){
+                if('layoutGrids' in selectedObject){
+                  let layoutGridCopy = clone(selectedObject.layoutGrids);
+                  let gridLayoutTypeCounter = gridCounter(selectedObject);
+                  
+                  if(gridLayoutTypeCounter.row == 0){  
+                    layoutGridCopy.push({
+                        alignment: "STRETCH",
+                        boundVariables: {
+                          "count": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowCountStretch'].variableID
+                          },
+                          "offset": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowMarginStretch'].variableID
+                          },
+                          "gutterSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowGutterStretch'].variableID
+                          }
+                        },
+                        color: {r: 1, g: 0, b: 0, a: 0.10000000149011612},
+                        count: parameters['rowCountStretch'].value,
+                        gutterSize: parameters['rowGutterStretch'].value,
+                        offset: parameters['rowMarginStretch'].value,
+                        pattern: "ROWS",
+                        visible: true
+                      })
+                  } else {
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {
+                      if(gridItem.pattern == 'ROWS'){
+                        if(gridItem.alignment != "STRETCH"){
+                        
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "STRETCH";
+                          switch(gridItem.alignment){
+                            case 'MIN':
+                            case 'MAX':
+                              delete gridItemClone.sectionSize;
+                              delete gridItemClone.boundVariables.sectionSize;
+                            break;
+                            case 'CENTER':
+                              delete gridItemClone.sectionSize;
+                              delete gridItemClone.boundVariables.sectionSize;
+                              gridItemClone.offset = parameters['rowMarginStretch'].value;
+                              gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['rowMarginStretch'].variableID};                            
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;                         
+                        } else{
+                          if(selectedGridRowNumberStretchVariable && selectedGridRowGutterStretchVariable && selectedGridRowMarginStretchVariable){
+                            layoutGridCopy[index].alignment = 'STRETCH';
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridRowNumberStretchVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridRowMarginStretchVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridRowGutterStretchVariable)
+                          }
+                        }
+                      }
+                    });
+                  }
+                  selectedObject.layoutGrids = layoutGridCopy; 
+                }
+              }
+            });
+      break;
+      case 'gridRowTop':
+        let selectedGridRowNumberTopVariable = figma.variables.getVariableById(parameters['rowCountTop'].variableID),
+            selectedGridRowWidthTopVariable = figma.variables.getVariableById(parameters['rowWidthTop'].variableID),
+            selectedGridRowMarginTopVariable = figma.variables.getVariableById(parameters['rowMarginTop'].variableID),
+            selectedGridRowGutterTopVariable = figma.variables.getVariableById(parameters['rowGutterTop'].variableID)
+            
+            mySelection.forEach(selectedObject => {
+              if(selectedObject.type == "FRAME"){
+                if('layoutGrids' in selectedObject){
+                  let layoutGridCopy = clone(selectedObject.layoutGrids);
+                  let gridLayoutTypeCounter = gridCounter(selectedObject);
+                  
+                  if(gridLayoutTypeCounter.row == 0){  
+                    layoutGridCopy.push({
+                        alignment: "MIN",
+                        boundVariables: {
+                          "count": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowCountTop'].variableID
+                          },
+                          "offset": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowMarginTop'].variableID
+                          },
+                          "sectionSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowWidthTop'].variableID
+                          },
+                          "gutterSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowGutterTop'].variableID
+                          }
+                        },
+                        color: {r: 1, g: 0, b: 0, a: 0.10000000149011612},
+                        count: parameters['rowCountTop'].value,
+                        gutterSize: parameters['rowGutterTop'].value,
+                        offset: parameters['rowMarginTop'].value,
+                        sectionSize: parameters['rowWidthTop'].value,
+                        pattern: "ROWS",
+                        visible: true
+                      })
+                  } else {
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {
+                      if(gridItem.pattern == 'ROWS'){
+                        if(gridItem.alignment != "MIN"){
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "MIN";
+                          
+                          switch(gridItem.alignment){
+                            case 'STRETCH':
+                              gridItemClone.sectionSize = parameters['rowWidthTop'].value;
+                              gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['rowWidthTop'].variableID};
+                            break;
+                            case 'CENTER':
+                              gridItemClone.offset = parameters['rowMarginTop'].value;
+                              gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['rowMarginTop'].variableID};
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;
+                        } else{                         
+                          if(selectedGridRowNumberTopVariable && selectedGridRowWidthTopVariable && selectedGridRowMarginTopVariable && selectedGridRowGutterTopVariable){
+                            layoutGridCopy[index].alignment = 'MIN';
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridRowNumberTopVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridRowMarginTopVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridRowGutterTopVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridRowWidthTopVariable)
+                          }
+                        }
+                      }
+                    });
+                  }
+                  selectedObject.layoutGrids = layoutGridCopy; 
+                }
+              }
+            });
+      break;
+      case 'gridRowBottom':
+        let selectedGridRowNumberBottomVariable = figma.variables.getVariableById(parameters['rowCountBottom'].variableID),
+            selectedGridRowWidthBottomVariable = figma.variables.getVariableById(parameters['rowWidthBottom'].variableID),
+            selectedGridRowMarginBottomVariable = figma.variables.getVariableById(parameters['rowMarginBottom'].variableID),
+            selectedGridRowGutterBottomVariable = figma.variables.getVariableById(parameters['rowGutterBottom'].variableID)
+            
+            mySelection.forEach(selectedObject => {
+              if(selectedObject.type == "FRAME"){
+                if('layoutGrids' in selectedObject){
+                  let layoutGridCopy = clone(selectedObject.layoutGrids);
+                  let gridLayoutTypeCounter = gridCounter(selectedObject);
+                  
+                  if(gridLayoutTypeCounter.row == 0){  
+                    layoutGridCopy.push({
+                        alignment: "MAX",
+                        boundVariables: {
+                          "count": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowCountBottom'].variableID
+                          },
+                          "offset": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowMarginBottom'].variableID
+                          },
+                          "sectionSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowWidthBottom'].variableID
+                          },
+                          "gutterSize": {
+                            "type": "VARIABLE_ALIAS",
+                            "id": parameters['rowGutterBottom'].variableID
+                          }
+                        },
+                        color: {r: 1, g: 0, b: 0, a: 0.10000000149011612},
+                        count: parameters['rowCountBottom'].value,
+                        gutterSize: parameters['rowGutterBottom'].value,
+                        offset: parameters['rowMarginBottom'].value,
+                        sectionSize: parameters['rowWidthBottom'].value,
+                        pattern: "ROWS",
+                        visible: true
+                      })
+                  } else {
+                    layoutGridCopy.forEach((gridItem: any, index: number) => {
+                      if(gridItem.pattern == 'ROWS'){
+                        if(gridItem.alignment != "MAX"){
+                          
+                          let gridItemClone = clone(gridItem);
+                          gridItemClone.alignment = "MAX";
+                          
+                          switch(gridItem.alignment){
+                            case 'STRETCH':
+                              gridItemClone.sectionSize = parameters['rowWidthBottom'].value;
+                              gridItemClone.boundVariables.sectionSize = {"type": "VARIABLE_ALIAS", "id": parameters['rowWidthBottom'].variableID};
+                            break;
+                            case 'CENTER':
+                              gridItemClone.offset = parameters['rowMarginBottom'].value;
+                              gridItemClone.boundVariables.offset = {"type": "VARIABLE_ALIAS", "id": parameters['rowMarginBottom'].variableID};
+                            break;
+                          }
+                          layoutGridCopy[index] = gridItemClone;
+                        } else{
+                          if(selectedGridRowNumberBottomVariable && selectedGridRowWidthBottomVariable && selectedGridRowMarginBottomVariable && selectedGridRowGutterBottomVariable){
+                            layoutGridCopy[index].alignment = 'MAX';
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'count', selectedGridRowNumberBottomVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'offset', selectedGridRowMarginBottomVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'gutterSize', selectedGridRowGutterBottomVariable)
+                            layoutGridCopy[index] = figma.variables.setBoundVariableForLayoutGrid(layoutGridCopy[index], 'sectionSize', selectedGridRowWidthBottomVariable)
+                          }
+                        }
+                      }
+                    });
+                  }
+                  selectedObject.layoutGrids = layoutGridCopy; 
+                }
+              } else {
+                figma.notify('Please select a frame')
+              }
+            });
       break;
     }
   }
@@ -584,4 +1924,67 @@ function writeVariables(contextualElement: any, numberScoping: string, myArray: 
   if(!checkCondition){
     myArray.push(variableValueNumber + 'px (' + contextualElement?.name + ' - ' + getNumberCollectionInfo?.name + ')');
   }
+}
+
+function effectsCounter(currentItem: any){  
+  let dropShadowCounter = 0,
+      layerBlurCounter = 0,
+      backgroundBlurCounter = 0,
+      innerShadowCounter = 0;
+
+  currentItem.effects.forEach((effect: any) => {
+    switch(effect.type){
+      case 'DROP_SHADOW':
+        dropShadowCounter++;
+      break;
+
+      case 'LAYER_BLUR':
+        layerBlurCounter++;
+      break;
+
+      case 'BACKGROUND_BLUR':
+        backgroundBlurCounter++;
+      break;
+
+      case 'INNER_SHADOW':
+        innerShadowCounter++;
+      break;
+    }
+  });
+  let globalCounter = {
+    dropShadow: dropShadowCounter,
+    layerBlur: layerBlurCounter,
+    backgroundBlur: backgroundBlurCounter,
+    innerShadow: innerShadowCounter
+  }
+  return globalCounter;
+}
+
+function gridCounter(currentItem: any){
+  let gridCounter = 0,
+      rowCounter = 0,
+      colCounter = 0;
+
+  currentItem.layoutGrids.forEach((gridCounterItem: any) => {
+    switch(gridCounterItem.pattern){
+      case 'GRID':
+        gridCounter++;
+      break;
+
+      case 'ROWS':
+        rowCounter++;
+      break;
+
+      case 'COLUMNS':
+        colCounter++;
+      break;
+
+    }
+  });
+  let globalCounter = {
+    grid: gridCounter,
+    row: rowCounter,
+    col: colCounter,
+  }  
+  return globalCounter;
 }
