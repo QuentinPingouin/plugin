@@ -270,32 +270,6 @@
       ]
     },
     {
-      "name": "Grid Row",
-      "command": "gridRow",
-      "parameters": [
-        {
-          "name": "Number of rows",
-          "key": "rowCount",
-          "description": "Choose the number of rows (variable)"
-        },
-        {
-          "name": "Height",
-          "key": "rowHeight",
-          "description": "Choose the height of the rows (variable)"
-        },
-        {
-          "name": "Offset",
-          "key": "rowOffset",
-          "description": "Choose the height of the offset (variable)"
-        },
-        {
-          "name": "Guther",
-          "key": "rowGuther",
-          "description": "Choose the width of the guthers (variable)"
-        }
-      ]
-    },
-    {
       "name": "Grid Column -> Center",
       "command": "gridColumnCenter",
       "parameters": [
@@ -385,6 +359,100 @@
         {
           "name": "Gutter",
           "key": "colGutterRight",
+          "description": "Choose the width of the guthers (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Grid Row -> Center",
+      "command": "gridRowCenter",
+      "parameters": [
+        {
+          "name": "Number of row",
+          "key": "rowCountCenter",
+          "description": "Choose the number of rows (variable)"
+        },
+        {
+          "name": "Width",
+          "key": "rowWidthCenter",
+          "description": "Choose the width of the row (variable)"
+        },
+        {
+          "name": "Gutter",
+          "key": "rowGutterCenter",
+          "description": "Choose the height of the guthers (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Grid Row -> Stretch",
+      "command": "gridRowStretch",
+      "parameters": [
+        {
+          "name": "Number of rows",
+          "key": "rowCountStretch",
+          "description": "Choose the number of rows (variable)"
+        },
+        {
+          "name": "Margin",
+          "key": "rowMarginStretch",
+          "description": "Choose the margin of the grid (variable)"
+        },
+        {
+          "name": "Gutter",
+          "key": "rowGutterStretch",
+          "description": "Choose the height of the guthers (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Grid Row -> Top",
+      "command": "gridRowTop",
+      "parameters": [
+        {
+          "name": "Number of rows",
+          "key": "rowCountTop",
+          "description": "Choose the number of rows (variable)"
+        },
+        {
+          "name": "Width",
+          "key": "rowWidthTop",
+          "description": "Choose the width of the rows (variable)"
+        },
+        {
+          "name": "Margin",
+          "key": "rowMarginTop",
+          "description": "Choose the margin of the grid (variable)"
+        },
+        {
+          "name": "Gutter",
+          "key": "rowGutterTop",
+          "description": "Choose the height of the guthers (variable)"
+        }
+      ]
+    },
+    {
+      "name": "Grid Row -> Bottom",
+      "command": "gridRowBottom",
+      "parameters": [
+        {
+          "name": "Number of rows",
+          "key": "rowCountBottom",
+          "description": "Choose the number of rows (variable)"
+        },
+        {
+          "name": "Width",
+          "key": "rowWidthBottom",
+          "description": "Choose the width of the rows (variable)"
+        },
+        {
+          "name": "Margin",
+          "key": "rowMarginBottom",
+          "description": "Choose the margin of the grid (variable)"
+        },
+        {
+          "name": "Gutter",
+          "key": "rowGutterBottom",
           "description": "Choose the width of the guthers (variable)"
         }
       ]
