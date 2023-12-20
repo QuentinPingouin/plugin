@@ -42,7 +42,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
         }
       }
     }
-  }
+  }  
   
   // if(figma.variables.getLocalVariables().length === 0){    
   //   result.setSuggestions(emptySuggestionArray);
@@ -53,23 +53,47 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
       case 'shadowColor':
       case 'gridColor':
         // ATTENTION ERREUR AVEC LES FRAMES
-
+     
       getColorVariable.forEach(color => {
         const colorCollectionId = color.variableCollectionId,
               colorCollectionName = figma.variables.getVariableCollectionById(colorCollectionId)?.name,
               colorName = color.name,
               colorVariableId = color.id,
-              colorHexValue = rgbaToHex(color.valuesByMode[Object.keys(color.valuesByMode)[0]] as RGBA);
+              colorValueBrut = color.valuesByMode[Object.keys(color.valuesByMode)[0]],
+              colorHexValue = rgbaToHex(colorValueBrut as RGBA);
 
-              colorObjects.push({
-                name: colorName,
-                hexValue: colorHexValue,
-                id: colorVariableId,
-                collectionName: colorCollectionName,
-                collectionId: colorCollectionId,
-                location: 'Local',
-                searchValue: colorName + ' --> ' + colorHexValue 
-              })        
+        // let colorValueBrut = color.valuesByMode[Object.keys(color.valuesByMode)[0]];
+
+              if(colorValueBrut !== null && typeof colorValueBrut === 'object'){
+                if('id' in colorValueBrut){
+                  let colorValueLinkedID = colorValueBrut.id;
+                  let colorLinkedVariable = figma.variables.getVariableById(colorValueLinkedID);
+                  if(colorLinkedVariable){
+                    let colorLinkedVariableHex = rgbaToHex(colorLinkedVariable.valuesByMode[Object.keys(colorLinkedVariable.valuesByMode)[0]] as RGBA)
+
+                    colorObjects.push({
+                      name: colorName,
+                      hexValue: colorLinkedVariableHex,
+                      id: colorVariableId,
+                      collectionName: colorCollectionName,
+                      collectionId: colorCollectionId,
+                      location: 'Local',
+                      searchValue: colorName + ' --> ' + colorLinkedVariableHex 
+                    }) 
+
+                  }
+                } else {
+                  colorObjects.push({
+                    name: colorName,
+                    hexValue: colorHexValue,
+                    id: colorVariableId,
+                    collectionName: colorCollectionName,
+                    collectionId: colorCollectionId,
+                    location: 'Local',
+                    searchValue: colorName + ' --> ' + colorHexValue 
+                  }) 
+                }
+              }
               // Faire en sorte d'afficher les pourcentage d'opacité de la couleurs si il existe, sinon ne rien afficher 
       });
       
@@ -79,25 +103,46 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
           // let colorNames: string[] = [];
 
 
-          getLibraryCollections().then(() => {
+          getLibraryCollections().then(() => {           
             importedColorVariable.forEach(importedColor => {
               const colorCollectionId = importedColor.variableCollectionId,
                 colorCollectionNameImported = figma.variables.getVariableCollectionById(colorCollectionId)?.name,
                 colorNameImported = importedColor.name,
                 colorVariableIdImported = importedColor.id,
-                colorHexValueImported = rgbaToHex(importedColor.valuesByMode[Object.keys(importedColor.valuesByMode)[0]] as RGBA);
+                colorValueBrutImported = importedColor.valuesByMode[Object.keys(importedColor.valuesByMode)[0]],
+                colorHexValueImported = rgbaToHex(colorValueBrutImported as RGBA);
 
-              colorObjects.push({
-                name: colorNameImported,
-                hexValue: colorHexValueImported,
-                id: colorVariableIdImported,
-                collectionName: colorCollectionNameImported,
-                collectionId: colorCollectionId,
-                location: 'Imported',
-                searchValue: colorNameImported + ' --> ' + colorHexValueImported
-              })  
-              
-            });     
+              if(colorValueBrutImported !== null && typeof colorValueBrutImported === 'object'){
+                if('id' in colorValueBrutImported){
+                  let colorValueLinkedIDImported = colorValueBrutImported.id;
+                  let colorLinkedVariableImported = figma.variables.getVariableById(colorValueLinkedIDImported);
+                  
+                  if(colorLinkedVariableImported){
+                    let colorLinkedVariableHex = rgbaToHex(colorLinkedVariableImported.valuesByMode[Object.keys(colorLinkedVariableImported.valuesByMode)[0]] as RGBA)
+
+                    colorObjects.push({
+                      name: colorNameImported,
+                      hexValue: colorLinkedVariableHex,
+                      id: colorVariableIdImported,
+                      collectionName: colorCollectionNameImported,
+                      collectionId: colorCollectionId,
+                      location: 'Imported',
+                      searchValue: colorNameImported + ' --> ' + colorLinkedVariableHex
+                    }) 
+                  }
+                } else {
+                  colorObjects.push({
+                    name: colorNameImported,
+                    hexValue: colorHexValueImported,
+                    id: colorVariableIdImported,
+                    collectionName: colorCollectionNameImported,
+                    collectionId: colorCollectionId,
+                    location: 'Imported',
+                    searchValue: colorNameImported + ' --> ' + colorHexValueImported
+                  }) 
+                }
+              }
+            });
             const suggestionsColor = colorObjects
               .filter(s => s.searchValue.includes(query))
               .map((s) => {
@@ -124,6 +169,8 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                 floatName = float.name,
                 floatVariableId = float.id,
                 floatValue = float.valuesByMode[Object.keys(float.valuesByMode)[0]] as number;
+
+                // faire la condition si c'est une variable liée a une variable
   
             floatObjects.push({
               name: floatName,
@@ -144,15 +191,37 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                   floatVariableIdImported = importedFloat.id,
                   floatValueImported = importedFloat.valuesByMode[Object.keys(importedFloat.valuesByMode)[0]] as number;
 
-            floatObjects.push({
-              name: floatNameImported,
-              value: floatValueImported,
-              id: floatVariableIdImported,
-              collectionName: floatCollectionNameImported,
-              collectionId: floatCollectionId,
-              location: 'Imported',
-              searchValue: floatNameImported+ ' --> ' + floatValueImported
-            })  
+                  if (typeof floatValueImported === 'object' && floatValueImported !== null) {
+                    let floatValueLinkedImported = floatValueImported as { id: string };
+                    if ('id' in floatValueLinkedImported) {
+
+                      let floatValueLinkedVariableImported = figma.variables.getVariableById(floatValueLinkedImported.id);
+                      let floatValueLinkedVariableValueImported = floatValueLinkedVariableImported?.valuesByMode[Object.keys(floatValueLinkedVariableImported.valuesByMode)[0]];
+
+                      floatObjects.push({
+                        name: floatNameImported,
+                        value: floatValueLinkedVariableValueImported,
+                        id: floatVariableIdImported,
+                        collectionName: floatCollectionNameImported,
+                        collectionId: floatCollectionId,
+                        location: 'Imported',
+                        searchValue: floatNameImported+ ' --> ' + floatValueLinkedVariableValueImported
+                      })  
+                    } else {
+                      floatObjects.push({
+                        name: floatNameImported,
+                        value: floatValueImported,
+                        id: floatVariableIdImported,
+                        collectionName: floatCollectionNameImported,
+                        collectionId: floatCollectionId,
+                        location: 'Imported',
+                        searchValue: floatNameImported+ ' --> ' + floatValueImported
+                      })  
+
+                    }
+                }
+                  
+            
             
           });
           // Est-ce toujours utils ? le plugin veut appliquer les variable, si pas mettre qu'on en a pas
