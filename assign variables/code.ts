@@ -52,6 +52,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
       case 'border_color':
       case 'shadowColor':
       case 'gridColor':
+        // ATTENTION ERREUR AVEC LES FRAMES
 
       getColorVariable.forEach(color => {
         const colorCollectionId = color.variableCollectionId,
@@ -67,8 +68,9 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                 collectionName: colorCollectionName,
                 collectionId: colorCollectionId,
                 location: 'Local',
-                searchValue: colorName + ' --> ' + colorCollectionName 
+                searchValue: colorName + ' --> ' + colorHexValue 
               })        
+              // Faire en sorte d'afficher les pourcentage d'opacité de la couleurs si il existe, sinon ne rien afficher 
       });
       
         // if(figma.variables.getLocalVariables('COLOR').length === 0){
@@ -92,7 +94,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                 collectionName: colorCollectionNameImported,
                 collectionId: colorCollectionId,
                 location: 'Imported',
-                searchValue: colorNameImported + ' --> ' + colorCollectionNameImported
+                searchValue: colorNameImported + ' --> ' + colorHexValueImported
               })  
               
             });     
@@ -114,7 +116,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
         // }
       break;
 
-      case 'border_width'://mettre la condition pour qu'il s'affhiche que les strokes
+      case 'border_width':
       case 'paddingSize':
         getNumberVariable.forEach(float => {
           const floatCollectionId = float.variableCollectionId,
@@ -130,7 +132,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
               collectionName: floatCollectionName,
               collectionId: floatCollectionId,
               location: 'Local',
-              searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+              searchValue: floatName + ' --> ' + floatValue
             })        
         });
 
@@ -149,25 +151,26 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
               collectionName: floatCollectionNameImported,
               collectionId: floatCollectionId,
               location: 'Imported',
-              searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported + ')' 
+              searchValue: floatNameImported+ ' --> ' + floatValueImported
             })  
             
           });
+          // Est-ce toujours utils ? le plugin veut appliquer les variable, si pas mettre qu'on en a pas
 
-          if(floatObjects.length == 0){
-            for(let numberCount = 0; numberCount <= 10; numberCount++){              
-              floatObjects.push({
-                name: '', 
-                value: numberCount, 
-                id: 'created/' + numberCount,
-                collectionId: 'createdCollection/' + numberCount,
-                location: 'created',
-                searchValue: numberCount + 'px',
-              })              
-            }
-          } else {
+          // if(floatObjects.length == 0){
+          //   for(let numberCount = 0; numberCount <= 10; numberCount++){              
+          //     floatObjects.push({
+          //       name: '', 
+          //       value: numberCount, 
+          //       id: 'created/' + numberCount,
+          //       collectionId: 'createdCollection/' + numberCount,
+          //       location: 'created',
+          //       searchValue: numberCount + 'px',
+          //     })              
+          //   }
+          // } else {
             floatObjects.sort((a, b) => a.value - b.value);
-          }
+          // }
           switch(key){
             case 'border_width':
               const suggestionsFloatBorder = floatObjects
@@ -176,7 +179,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                   const sizeFixe = 16;  
                   return ({ 
                     name: s.searchValue,
-                    icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" stroke="red" stroke-width="${s.value}"/></svg>`,
+                    icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" stroke="#1467a7" stroke-width="${s.value}"/></svg>`,
                     data: {
                       value : s.value,
                       variableID: s.id,
@@ -273,7 +276,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       collectionName: floatCollectionName,
                       collectionId: floatCollectionId,
                       location: 'Local',
-                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                      searchValue: floatName + ' --> ' + floatValue
                     })
                   }
                 break;
@@ -287,11 +290,12 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       collectionName: floatCollectionName,
                       collectionId: floatCollectionId,
                       location: 'Local',
-                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName + ')'
+                      searchValue: floatName + ' --> ' + floatValue
                     })
                   }
                 break;
                 case "radius":
+                  // ne fonctionne plus
                   if(float.scopes.toString().includes('CORNER_RADIUS') || float.scopes.toString().includes('ALL_SCOPES')){
                     floatObjects.push({
                       name: floatName,
@@ -300,7 +304,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       collectionName: floatCollectionName,
                       collectionId: floatCollectionId,
                       location: 'Local',
-                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                      searchValue: floatName + ' --> ' + floatValue
                     })
                   }
                 break;
@@ -313,7 +317,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       collectionName: floatCollectionName,
                       collectionId: floatCollectionId,
                       location: 'Local',
-                      searchValue: floatValue + '% --> (var--' + floatName + ') / ' + floatCollectionName
+                      searchValue: floatName + ' --> ' + floatValue
                     })
                   }
                 break;
@@ -331,7 +335,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       collectionName: floatCollectionName,
                       collectionId: floatCollectionId,
                       location: 'Local',
-                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                      searchValue: floatName + ' --> ' + floatValue
                     })
                   }
                 break;
@@ -344,7 +348,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       collectionName: floatCollectionName,
                       collectionId: floatCollectionId,
                       location: 'Local',
-                      searchValue: floatValue + 'px --> (var--' + floatName + ') / ' + floatCollectionName
+                      searchValue: floatName + ' --> ' + floatValue
                     })
                   // }
                 break;
@@ -373,7 +377,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     collectionName: floatCollectionNameImported,
                     collectionId: floatCollectionId,
                     location: 'Imported',
-                    searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                    searchValue: floatNameImported + ' --> ' + floatValueImported
                   })  
                 }
               break;
@@ -387,7 +391,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     collectionName: floatCollectionNameImported,
                     collectionId: floatCollectionId,
                     location: 'Imported',
-                    searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                    searchValue: floatNameImported + ' --> ' + floatValueImported
                   })
                 }
               break;
@@ -400,7 +404,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     collectionName: floatCollectionNameImported,
                     collectionId: floatCollectionId,
                     location: 'Imported',
-                    searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                    searchValue: floatNameImported + ' --> ' + floatValueImported
                   })
                 }
               break;
@@ -414,7 +418,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     collectionName: floatCollectionNameImported,
                     collectionId: floatCollectionId,
                     location: 'Imported',
-                    searchValue: floatValueImported + '% --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                    searchValue: floatNameImported + ' --> ' + floatValueImported
                   })
                 }
                 break;
@@ -432,7 +436,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       collectionName: floatCollectionNameImported,
                       collectionId: floatCollectionId,
                       location: 'Imported',
-                      searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                      searchValue: floatNameImported + ' --> ' + floatValueImported
                     })
                   }
                 break;
@@ -445,7 +449,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       collectionName: floatCollectionNameImported,
                       collectionId: floatCollectionId,
                       location: 'Imported',
-                      searchValue: floatValueImported + 'px --> (var--' + floatNameImported + ') / ' + floatCollectionNameImported
+                      searchValue: floatNameImported + ' --> ' + floatValueImported
                     })
                   // }
                 break;
@@ -563,8 +567,8 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     name: s.searchValue, 
                     icon: `<svg width="${sizeFixe}" height="${sizeFixe}" viewBox="0 0 ${sizeFixe} ${sizeFixe}" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <rect width="${sizeFixe}" height="${sizeFixe}" fill="#ffffff" x="0" y="0"/>
-                              <rect width="${s.paddingWidth}" height="${s.paddingHeight}" x="${s.paddingPositionX}" y="${s.paddingPositionY}" rx="1" fill="#0D99FF"/>
-                              <rect width="${s.paddingWidthSecond}" height="${s.paddingHeightSecond}" x="${s.paddingPositionXSecond}" y="${s.paddingPositionYSecond}" visibility="${s.visibilitySecond}" rx="1" fill="#0D99FF"/>
+                              <rect width="${s.paddingWidth}" height="${s.paddingHeight}" x="${s.paddingPositionX}" y="${s.paddingPositionY}" rx="1" fill="#1467a7"/>
+                              <rect width="${s.paddingWidthSecond}" height="${s.paddingHeightSecond}" x="${s.paddingPositionXSecond}" y="${s.paddingPositionYSecond}" visibility="${s.visibilitySecond}" rx="1" fill="#1467a7"/>
                             </svg>`,
                     data: {
                       value: s.devValue,
@@ -695,8 +699,8 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     name: s.searchValue, 
                     icon: `<svg width="${sizeFixeBorder}" height="${sizeFixeBorder}" viewBox="0 0 ${sizeFixeBorder} ${sizeFixeBorder}" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <rect width="${sizeFixeBorder}" height="${sizeFixeBorder}" fill="#ffffff" x="0" y="0"/>
-                              <rect width="${s.borderWidth}" height="${s.borderHeight}" x="${s.borderPositionX}" y="${s.borderPositionY}" rx="1" fill="${s.svgBackground}" stroke="#0D99FF" stroke-width="${s.strokeWidth}"/>
-                              <rect width="${s.borderWidthSecond}" height="${s.borderHeightSecond}" x="${s.borderPositionXSecond}" y="${s.borderPositionYSecond}" visibility="${s.visibilitySecond}" rx="1" fill="#0D99FF"/>
+                              <rect width="${s.borderWidth}" height="${s.borderHeight}" x="${s.borderPositionX}" y="${s.borderPositionY}" rx="1" fill="${s.svgBackground}" stroke="#1467a7" stroke-width="${s.strokeWidth}"/>
+                              <rect width="${s.borderWidthSecond}" height="${s.borderHeightSecond}" x="${s.borderPositionXSecond}" y="${s.borderPositionYSecond}" visibility="${s.visibilitySecond}" rx="1" fill="#1467a7"/>
                             </svg>`,
                     data: {
                       value: s.devValue,
@@ -804,7 +808,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
             id: textVariableId,
             collectionName: textCollectionName,
             collectionId: textCollectionId,
-            searchValue: textString + ' --> var(--' + textName + ')  / ' + textCollectionName 
+            searchValue: textName + ' --> ' + textString
           })        
         });
 
@@ -821,7 +825,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
               id: textVariableIdImported,
               collectionName: textCollectionNameImported,
               collectionId: textCollectionId,
-              searchValue: textStringImported + ' --> var(--' + textNameImported + ')  / ' + textCollectionNameImported 
+              searchValue: textNameImported + ' --> ' + textStringImported
             })  
             
           });     
@@ -1000,45 +1004,6 @@ figma.on('run', ({ command, parameters }: RunEvent) => {
           figma.notify('Please select an item')
         }
       break;
-      // case 'layerBlur':
-      //   // Fonctionne pour l'ajout mais pas pour la modification
-      //   let currentBlurSizeVariable = figma.variables.getVariableById(parameters['layerBlurSize'].variableID),
-      //       blurEffectsCounter = 0;
-
-      //   if(mySelection.length > 0){
-      //     mySelection.forEach(blur => {            
-      //       if('effects' in blur){
-      //         // detecter la longueur de effect car en l'état il sera toujours à 0 car le blur effect est resset, il sera toujours à zero car un seul blur est autorisé, mais il ne faut pas reset tout l'effet, peu etre le cloner avant si blur effect le supprimer et ajouter les effet avant dan le tableau
-      //         if(blurEffectsCounter == 0){
-      //             blur.effects = [{ 
-      //             type: 'LAYER_BLUR',
-      //             radius: 10,
-      //             visible: true,
-      //             boundVariables: {
-      //               radius : {
-      //                 id: parameters['layerBlurSize'].variableID,
-      //                 type: 'VARIABLE_ALIAS'
-      //               }
-      //             }
-      //           }];
-      //         }
-
-      //         let effectsCopy = clone(blur.effects);
-      //         effectsCopy.forEach((currentEffectCopy: any) => {
-      //           if(currentEffectCopy.type == 'LAYER_BLUR'){                  
-      //             if(currentBlurSizeVariable){
-      //               effectsCopy[blurEffectsCounter] = figma.variables.setBoundVariableForEffect(effectsCopy[blurEffectsCounter], 'radius', currentBlurSizeVariable)
-      //             }
-      //             blur.effects = effectsCopy;                  
-      //             blurEffectsCounter++;
-      //           }
-      //         });
-      //       }          
-      //     });
-      //   } else {
-      //     figma.notify('Please select an item')
-      //   }
-      // break;
       case 'dropShadow':
       case 'innerShadow':
         let currentShadowXVariable = figma.variables.getVariableById(parameters['shadowX'].variableID),

@@ -11,18 +11,17 @@
   ],
   "menu":[
     {
-      "name": "Color",
+      "name": "Fill",
       "command": "color",
       "parameters": [
           {
             "name": "Color",
-            "key": "color",
-            "description": "Choose your color (variable)"
+            "key": "color"
           }
         ]
     },
     {
-      "name": "Border",
+      "name": "Stroke",
       "command": "border",
       "parameters": [
         {
