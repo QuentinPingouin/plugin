@@ -69,18 +69,40 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                   let colorValueLinkedID = colorValueBrut.id;
                   let colorLinkedVariable = figma.variables.getVariableById(colorValueLinkedID);
                   if(colorLinkedVariable){
-                    let colorLinkedVariableHex = rgbaToHex(colorLinkedVariable.valuesByMode[Object.keys(colorLinkedVariable.valuesByMode)[0]] as RGBA)
+                    let colorLinkedVariableValue = colorLinkedVariable.valuesByMode[Object.keys(colorLinkedVariable.valuesByMode)[0]];
+                    let colorLinkedVariableHex = rgbaToHex(colorLinkedVariableValue as RGBA);                    
 
-                    colorObjects.push({
-                      name: colorName,
-                      hexValue: colorLinkedVariableHex,
-                      id: colorVariableId,
-                      collectionName: colorCollectionName,
-                      collectionId: colorCollectionId,
-                      location: 'Local',
-                      searchValue: colorName + ' --> ' + colorLinkedVariableHex 
-                    }) 
+                    if(colorLinkedVariableValue !== null && typeof colorLinkedVariableValue === 'object'){
+                      if('id' in colorLinkedVariableValue){
+                        let colorValueDoubleLinkedID = colorLinkedVariableValue.id;
+                        let colorDoubleLinkedVariable = figma.variables.getVariableById(colorValueDoubleLinkedID);
+                        
+                        if(colorDoubleLinkedVariable){
+                          let colorDoubleLinkedVariableValue = colorDoubleLinkedVariable.valuesByMode[Object.keys(colorDoubleLinkedVariable.valuesByMode)[0]];
+                          let colorDoubleLinkedVariableHex = rgbaToHex(colorDoubleLinkedVariableValue as RGBA);
 
+                          colorObjects.push({
+                            name: colorName,
+                            hexValue: colorDoubleLinkedVariableHex,
+                            id: colorVariableId,
+                            collectionName: colorCollectionName,
+                            collectionId: colorCollectionId,
+                            location: 'Local',
+                            searchValue: colorName + ' --> ' + colorDoubleLinkedVariableHex 
+                          })
+                        }
+                      } else {
+                        colorObjects.push({
+                          name: colorName,
+                          hexValue: colorLinkedVariableHex,
+                          id: colorVariableId,
+                          collectionName: colorCollectionName,
+                          collectionId: colorCollectionId,
+                          location: 'Local',
+                          searchValue: colorName + ' --> ' + colorLinkedVariableHex 
+                        }) 
+                      }
+                    }
                   }
                 } else {
                   colorObjects.push({
@@ -105,8 +127,8 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
 
           getLibraryCollections().then(() => {           
             importedColorVariable.forEach(importedColor => {
-              const colorCollectionId = importedColor.variableCollectionId,
-                colorCollectionNameImported = figma.variables.getVariableCollectionById(colorCollectionId)?.name,
+              const colorCollectionIdImported = importedColor.variableCollectionId,
+                colorCollectionNameImported = figma.variables.getVariableCollectionById(colorCollectionIdImported)?.name,
                 colorNameImported = importedColor.name,
                 colorVariableIdImported = importedColor.id,
                 colorValueBrutImported = importedColor.valuesByMode[Object.keys(importedColor.valuesByMode)[0]],
@@ -118,17 +140,40 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                   let colorLinkedVariableImported = figma.variables.getVariableById(colorValueLinkedIDImported);
                   
                   if(colorLinkedVariableImported){
-                    let colorLinkedVariableHex = rgbaToHex(colorLinkedVariableImported.valuesByMode[Object.keys(colorLinkedVariableImported.valuesByMode)[0]] as RGBA)
+                    let colorLinkedVariableValueImported = colorLinkedVariableImported.valuesByMode[Object.keys(colorLinkedVariableImported.valuesByMode)[0]];
+                    let colorLinkedVariableHexImported = rgbaToHex(colorLinkedVariableValueImported as RGBA);                    
 
-                    colorObjects.push({
-                      name: colorNameImported,
-                      hexValue: colorLinkedVariableHex,
-                      id: colorVariableIdImported,
-                      collectionName: colorCollectionNameImported,
-                      collectionId: colorCollectionId,
-                      location: 'Imported',
-                      searchValue: colorNameImported + ' --> ' + colorLinkedVariableHex
-                    }) 
+                    if(colorLinkedVariableValueImported !== null && typeof colorLinkedVariableValueImported === 'object'){
+                      if('id' in colorLinkedVariableValueImported){
+                        let colorValueDoubleLinkedIDImported = colorLinkedVariableValueImported.id;
+                        let colorDoubleLinkedVariableImported = figma.variables.getVariableById(colorValueDoubleLinkedIDImported);
+                        
+                        if(colorDoubleLinkedVariableImported){
+                          let colorDoubleLinkedVariableValueImported = colorDoubleLinkedVariableImported.valuesByMode[Object.keys(colorDoubleLinkedVariableImported.valuesByMode)[0]];
+                          let colorDoubleLinkedVariableHexImported = rgbaToHex(colorDoubleLinkedVariableValueImported as RGBA);
+
+                          colorObjects.push({
+                            name: colorNameImported,
+                            hexValue: colorDoubleLinkedVariableHexImported,
+                            id: colorVariableIdImported,
+                            collectionName: colorCollectionNameImported,
+                            collectionId: colorCollectionIdImported,
+                            location: 'Local',
+                            searchValue: colorNameImported + ' --> ' + colorDoubleLinkedVariableHexImported 
+                          })
+                        }
+                      } else {
+                        colorObjects.push({
+                          name: colorNameImported,
+                          hexValue: colorLinkedVariableHexImported,
+                          id: colorVariableIdImported,
+                          collectionName: colorCollectionNameImported,
+                          collectionId: colorCollectionIdImported,
+                          location: 'Local',
+                          searchValue: colorNameImported + ' --> ' + colorLinkedVariableHexImported 
+                        }) 
+                      }
+                    }
                   }
                 } else {
                   colorObjects.push({
@@ -136,7 +181,7 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                     hexValue: colorHexValueImported,
                     id: colorVariableIdImported,
                     collectionName: colorCollectionNameImported,
-                    collectionId: colorCollectionId,
+                    collectionId: colorCollectionIdImported,
                     location: 'Imported',
                     searchValue: colorNameImported + ' --> ' + colorHexValueImported
                   }) 
@@ -177,15 +222,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
               let floatValueLinkedVariable = figma.variables.getVariableById(floatValueLinked.id);
               let floatValueLinkedVariableValue = floatValueLinkedVariable?.valuesByMode[Object.keys(floatValueLinkedVariable.valuesByMode)[0]];
 
-              floatObjects.push({
-                name: floatName,
-                value: floatValueLinkedVariableValue,
-                id: floatVariableId,
-                collectionName: floatCollectionName,
-                collectionId: floatCollectionId,
-                location: 'Local',
-                searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
-              }) 
+              if (typeof floatValueLinkedVariableValue === 'object' && floatValue !== null) {
+                let floatValueDoubleLinked = floatValueLinkedVariableValue as { id: string };
+                if ('id' in floatValueDoubleLinked) {
+                  let floatValueDoubleLinkedVariable = figma.variables.getVariableById(floatValueDoubleLinked.id);
+                  let floatValueDoubleLinkedVariableValue = floatValueDoubleLinkedVariable?.valuesByMode[Object.keys(floatValueDoubleLinkedVariable.valuesByMode)[0]];
+
+                  floatObjects.push({
+                    name: floatName,
+                    value: floatValueDoubleLinkedVariableValue,
+                    id: floatVariableId,
+                    collectionName: floatCollectionName,
+                    collectionId: floatCollectionId,
+                    location: 'Local',
+                    searchValue: floatName + ' --> ' + floatValueDoubleLinkedVariableValue
+                  })
+                }
+              } else {
+                floatObjects.push({
+                  name: floatName,
+                  value: floatValueLinkedVariableValue,
+                  id: floatVariableId,
+                  collectionName: floatCollectionName,
+                  collectionId: floatCollectionId,
+                  location: 'Local',
+                  searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
+                })
+              }
             } else {
               floatObjects.push({
                 name: floatName,
@@ -202,61 +265,62 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
 
         getLibraryCollections().then(() => {
           importedFloatVariable.forEach(importedFloat => {
-            const floatCollectionId = importedFloat.variableCollectionId,
-                  floatCollectionNameImported = figma.variables.getVariableCollectionById(floatCollectionId)?.name,
+            const floatCollectionIdImported = importedFloat.variableCollectionId,
+                  floatCollectionNameImported = figma.variables.getVariableCollectionById(floatCollectionIdImported)?.name,
                   floatNameImported = importedFloat.name,
                   floatVariableIdImported = importedFloat.id,
                   floatValueImported = importedFloat.valuesByMode[Object.keys(importedFloat.valuesByMode)[0]] as number;
 
-                  if (typeof floatValueImported === 'object' && floatValueImported !== null) {
-                    let floatValueLinkedImported = floatValueImported as { id: string };
-                    if ('id' in floatValueLinkedImported) {
+              if (typeof floatValueImported === 'object' && floatValueImported !== null) {
+                let floatValueLinkedImported = floatValueImported as { id: string };
+                if ('id' in floatValueLinkedImported) {
 
-                      let floatValueLinkedVariableImported = figma.variables.getVariableById(floatValueLinkedImported.id);
-                      let floatValueLinkedVariableValueImported = floatValueLinkedVariableImported?.valuesByMode[Object.keys(floatValueLinkedVariableImported.valuesByMode)[0]];
+                  let floatValueLinkedVariableImported = figma.variables.getVariableById(floatValueLinkedImported.id);
+                  let floatValueLinkedVariableValueImported = floatValueLinkedVariableImported?.valuesByMode[Object.keys(floatValueLinkedVariableImported.valuesByMode)[0]];
 
+                  if (typeof floatValueLinkedVariableValueImported === 'object' && floatValueImported !== null) {
+                    let floatValueDoubleLinkedImported = floatValueLinkedVariableValueImported as { id: string };
+                    if ('id' in floatValueDoubleLinkedImported) {
+                      let floatValueDoubleLinkedVariableImported = figma.variables.getVariableById(floatValueDoubleLinkedImported.id);
+                      let floatValueDoubleLinkedVariableValueImported = floatValueDoubleLinkedVariableImported?.valuesByMode[Object.keys(floatValueDoubleLinkedVariableImported.valuesByMode)[0]];
+    
                       floatObjects.push({
                         name: floatNameImported,
-                        value: floatValueLinkedVariableValueImported,
+                        value: floatValueDoubleLinkedVariableValueImported,
                         id: floatVariableIdImported,
                         collectionName: floatCollectionNameImported,
-                        collectionId: floatCollectionId,
-                        location: 'Imported',
-                        searchValue: floatNameImported+ ' --> ' + floatValueLinkedVariableValueImported
-                      })  
-                    } else {
-                      floatObjects.push({
-                        name: floatNameImported,
-                        value: floatValueImported,
-                        id: floatVariableIdImported,
-                        collectionName: floatCollectionNameImported,
-                        collectionId: floatCollectionId,
-                        location: 'Imported',
-                        searchValue: floatNameImported+ ' --> ' + floatValueImported
-                      })  
-
+                        collectionId: floatCollectionIdImported,
+                        location: 'Local',
+                        searchValue: floatNameImported + ' --> ' + floatValueDoubleLinkedVariableValueImported
+                      })
                     }
-                }
-                  
-            
-            
-          });
-          // Est-ce toujours utils ? le plugin veut appliquer les variable, si pas mettre qu'on en a pas
+                  } else {
+                    floatObjects.push({
+                      name: floatNameImported,
+                      value: floatValueLinkedVariableValueImported,
+                      id: floatVariableIdImported,
+                      collectionName: floatCollectionNameImported,
+                      collectionId: floatCollectionIdImported,
+                      location: 'Local',
+                      searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
+                    })
+                  }
+                } else {
+                  floatObjects.push({
+                    name: floatNameImported,
+                    value: floatValueImported,
+                    id: floatVariableIdImported,
+                    collectionName: floatCollectionNameImported,
+                    collectionId: floatCollectionIdImported,
+                    location: 'Imported',
+                    searchValue: floatNameImported+ ' --> ' + floatValueImported
+                  })  
 
-          // if(floatObjects.length == 0){
-          //   for(let numberCount = 0; numberCount <= 10; numberCount++){              
-          //     floatObjects.push({
-          //       name: '', 
-          //       value: numberCount, 
-          //       id: 'created/' + numberCount,
-          //       collectionId: 'createdCollection/' + numberCount,
-          //       location: 'created',
-          //       searchValue: numberCount + 'px',
-          //     })              
-          //   }
-          // } else {
-            floatObjects.sort((a, b) => a.value - b.value);
-          // }
+                }
+            }
+          });
+
+          floatObjects.sort((a, b) => a.value - b.value);
           switch(key){
             case 'border_width':
               const suggestionsFloatBorder = floatObjects
@@ -361,15 +425,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                         let floatValueLinkedVariable = figma.variables.getVariableById(floatValueLinked.id);
                         let floatValueLinkedVariableValue = floatValueLinkedVariable?.valuesByMode[Object.keys(floatValueLinkedVariable.valuesByMode)[0]];
                         
-                        floatObjects.push({
-                          name: floatName,
-                          value: floatValueLinkedVariableValue,
-                          id: floatVariableId,
-                          collectionName: floatCollectionName,
-                          collectionId: floatCollectionId,
-                          location: 'Local',
-                          searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
-                        })
+                        if (typeof floatValueLinkedVariableValue === 'object' && floatValue !== null) {
+                          let floatValueDoubleLinked = floatValueLinkedVariableValue as { id: string };
+                          if ('id' in floatValueDoubleLinked) {
+                            let floatValueDoubleLinkedVariable = figma.variables.getVariableById(floatValueDoubleLinked.id);
+                            let floatValueDoubleLinkedVariableValue = floatValueDoubleLinkedVariable?.valuesByMode[Object.keys(floatValueDoubleLinkedVariable.valuesByMode)[0]];
+          
+                            floatObjects.push({
+                              name: floatName,
+                              value: floatValueDoubleLinkedVariableValue,
+                              id: floatVariableId,
+                              collectionName: floatCollectionName,
+                              collectionId: floatCollectionId,
+                              location: 'Local',
+                              searchValue: floatName + ' --> ' + floatValueDoubleLinkedVariableValue
+                            })
+                          }
+                        } else {
+                          floatObjects.push({
+                            name: floatName,
+                            value: floatValueLinkedVariableValue,
+                            id: floatVariableId,
+                            collectionName: floatCollectionName,
+                            collectionId: floatCollectionId,
+                            location: 'Local',
+                            searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
+                          })
+                        }
                       } 
                     } else {
                       floatObjects.push({
@@ -393,15 +475,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                         let floatValueLinkedVariable = figma.variables.getVariableById(floatValueLinked.id);
                         let floatValueLinkedVariableValue = floatValueLinkedVariable?.valuesByMode[Object.keys(floatValueLinkedVariable.valuesByMode)[0]];
                         
-                        floatObjects.push({
-                          name: floatName,
-                          value: floatValueLinkedVariableValue,
-                          id: floatVariableId,
-                          collectionName: floatCollectionName,
-                          collectionId: floatCollectionId,
-                          location: 'Local',
-                          searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
-                        })
+                        if (typeof floatValueLinkedVariableValue === 'object' && floatValue !== null) {
+                          let floatValueDoubleLinked = floatValueLinkedVariableValue as { id: string };
+                          if ('id' in floatValueDoubleLinked) {
+                            let floatValueDoubleLinkedVariable = figma.variables.getVariableById(floatValueDoubleLinked.id);
+                            let floatValueDoubleLinkedVariableValue = floatValueDoubleLinkedVariable?.valuesByMode[Object.keys(floatValueDoubleLinkedVariable.valuesByMode)[0]];
+          
+                            floatObjects.push({
+                              name: floatName,
+                              value: floatValueDoubleLinkedVariableValue,
+                              id: floatVariableId,
+                              collectionName: floatCollectionName,
+                              collectionId: floatCollectionId,
+                              location: 'Local',
+                              searchValue: floatName + ' --> ' + floatValueDoubleLinkedVariableValue
+                            })
+                          }
+                        } else {
+                          floatObjects.push({
+                            name: floatName,
+                            value: floatValueLinkedVariableValue,
+                            id: floatVariableId,
+                            collectionName: floatCollectionName,
+                            collectionId: floatCollectionId,
+                            location: 'Local',
+                            searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
+                          })
+                        }
                       } 
                     } else {
                       floatObjects.push({
@@ -424,15 +524,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                         let floatValueLinkedVariable = figma.variables.getVariableById(floatValueLinked.id);
                         let floatValueLinkedVariableValue = floatValueLinkedVariable?.valuesByMode[Object.keys(floatValueLinkedVariable.valuesByMode)[0]];
                         
-                        floatObjects.push({
-                          name: floatName,
-                          value: floatValueLinkedVariableValue,
-                          id: floatVariableId,
-                          collectionName: floatCollectionName,
-                          collectionId: floatCollectionId,
-                          location: 'Local',
-                          searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
-                        })
+                        if (typeof floatValueLinkedVariableValue === 'object' && floatValue !== null) {
+                          let floatValueDoubleLinked = floatValueLinkedVariableValue as { id: string };
+                          if ('id' in floatValueDoubleLinked) {
+                            let floatValueDoubleLinkedVariable = figma.variables.getVariableById(floatValueDoubleLinked.id);
+                            let floatValueDoubleLinkedVariableValue = floatValueDoubleLinkedVariable?.valuesByMode[Object.keys(floatValueDoubleLinkedVariable.valuesByMode)[0]];
+          
+                            floatObjects.push({
+                              name: floatName,
+                              value: floatValueDoubleLinkedVariableValue,
+                              id: floatVariableId,
+                              collectionName: floatCollectionName,
+                              collectionId: floatCollectionId,
+                              location: 'Local',
+                              searchValue: floatName + ' --> ' + floatValueDoubleLinkedVariableValue
+                            })
+                          }
+                        } else {
+                          floatObjects.push({
+                            name: floatName,
+                            value: floatValueLinkedVariableValue,
+                            id: floatVariableId,
+                            collectionName: floatCollectionName,
+                            collectionId: floatCollectionId,
+                            location: 'Local',
+                            searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
+                          })
+                        }
                       } 
                     } else {
                       floatObjects.push({
@@ -455,15 +573,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                         let floatValueLinkedVariable = figma.variables.getVariableById(floatValueLinked.id);
                         let floatValueLinkedVariableValue = floatValueLinkedVariable?.valuesByMode[Object.keys(floatValueLinkedVariable.valuesByMode)[0]];
                         
-                        floatObjects.push({
-                          name: floatName,
-                          value: floatValueLinkedVariableValue,
-                          id: floatVariableId,
-                          collectionName: floatCollectionName,
-                          collectionId: floatCollectionId,
-                          location: 'Local',
-                          searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
-                        })
+                        if (typeof floatValueLinkedVariableValue === 'object' && floatValue !== null) {
+                          let floatValueDoubleLinked = floatValueLinkedVariableValue as { id: string };
+                          if ('id' in floatValueDoubleLinked) {
+                            let floatValueDoubleLinkedVariable = figma.variables.getVariableById(floatValueDoubleLinked.id);
+                            let floatValueDoubleLinkedVariableValue = floatValueDoubleLinkedVariable?.valuesByMode[Object.keys(floatValueDoubleLinkedVariable.valuesByMode)[0]];
+          
+                            floatObjects.push({
+                              name: floatName,
+                              value: floatValueDoubleLinkedVariableValue,
+                              id: floatVariableId,
+                              collectionName: floatCollectionName,
+                              collectionId: floatCollectionId,
+                              location: 'Local',
+                              searchValue: floatName + ' --> ' + floatValueDoubleLinkedVariableValue
+                            })
+                          }
+                        } else {
+                          floatObjects.push({
+                            name: floatName,
+                            value: floatValueLinkedVariableValue,
+                            id: floatVariableId,
+                            collectionName: floatCollectionName,
+                            collectionId: floatCollectionId,
+                            location: 'Local',
+                            searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
+                          })
+                        }
                       } 
                     } else {
                       floatObjects.push({
@@ -491,15 +627,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                         let floatValueLinkedVariable = figma.variables.getVariableById(floatValueLinked.id);
                         let floatValueLinkedVariableValue = floatValueLinkedVariable?.valuesByMode[Object.keys(floatValueLinkedVariable.valuesByMode)[0]];
                         
-                        floatObjects.push({
-                          name: floatName,
-                          value: floatValueLinkedVariableValue,
-                          id: floatVariableId,
-                          collectionName: floatCollectionName,
-                          collectionId: floatCollectionId,
-                          location: 'Local',
-                          searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
-                        })
+                        if (typeof floatValueLinkedVariableValue === 'object' && floatValue !== null) {
+                          let floatValueDoubleLinked = floatValueLinkedVariableValue as { id: string };
+                          if ('id' in floatValueDoubleLinked) {
+                            let floatValueDoubleLinkedVariable = figma.variables.getVariableById(floatValueDoubleLinked.id);
+                            let floatValueDoubleLinkedVariableValue = floatValueDoubleLinkedVariable?.valuesByMode[Object.keys(floatValueDoubleLinkedVariable.valuesByMode)[0]];
+          
+                            floatObjects.push({
+                              name: floatName,
+                              value: floatValueDoubleLinkedVariableValue,
+                              id: floatVariableId,
+                              collectionName: floatCollectionName,
+                              collectionId: floatCollectionId,
+                              location: 'Local',
+                              searchValue: floatName + ' --> ' + floatValueDoubleLinkedVariableValue
+                            })
+                          }
+                        } else {
+                          floatObjects.push({
+                            name: floatName,
+                            value: floatValueLinkedVariableValue,
+                            id: floatVariableId,
+                            collectionName: floatCollectionName,
+                            collectionId: floatCollectionId,
+                            location: 'Local',
+                            searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
+                          })
+                        }
                       } 
                     } else {
                       floatObjects.push({
@@ -521,15 +675,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                         let floatValueLinkedVariable = figma.variables.getVariableById(floatValueLinked.id);
                         let floatValueLinkedVariableValue = floatValueLinkedVariable?.valuesByMode[Object.keys(floatValueLinkedVariable.valuesByMode)[0]];
                         
-                        floatObjects.push({
-                          name: floatName,
-                          value: floatValueLinkedVariableValue,
-                          id: floatVariableId,
-                          collectionName: floatCollectionName,
-                          collectionId: floatCollectionId,
-                          location: 'Local',
-                          searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
-                        })
+                        if (typeof floatValueLinkedVariableValue === 'object' && floatValue !== null) {
+                          let floatValueDoubleLinked = floatValueLinkedVariableValue as { id: string };
+                          if ('id' in floatValueDoubleLinked) {
+                            let floatValueDoubleLinkedVariable = figma.variables.getVariableById(floatValueDoubleLinked.id);
+                            let floatValueDoubleLinkedVariableValue = floatValueDoubleLinkedVariable?.valuesByMode[Object.keys(floatValueDoubleLinkedVariable.valuesByMode)[0]];
+          
+                            floatObjects.push({
+                              name: floatName,
+                              value: floatValueDoubleLinkedVariableValue,
+                              id: floatVariableId,
+                              collectionName: floatCollectionName,
+                              collectionId: floatCollectionId,
+                              location: 'Local',
+                              searchValue: floatName + ' --> ' + floatValueDoubleLinkedVariableValue
+                            })
+                          }
+                        } else {
+                          floatObjects.push({
+                            name: floatName,
+                            value: floatValueLinkedVariableValue,
+                            id: floatVariableId,
+                            collectionName: floatCollectionName,
+                            collectionId: floatCollectionId,
+                            location: 'Local',
+                            searchValue: floatName + ' --> ' + floatValueLinkedVariableValue
+                          })
+                        }
                       } 
                     } else {
                       floatObjects.push({
@@ -568,16 +740,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       let floatValueLinkedVariableImported = figma.variables.getVariableById(floatValueLinkedImported.id);
                       let floatValueLinkedVariableValueImported = floatValueLinkedVariableImported?.valuesByMode[Object.keys(floatValueLinkedVariableImported.valuesByMode)[0]];
                       
-                      floatObjects.push({
-                        name: floatNameImported,
-                        value: floatValueLinkedVariableValueImported,
-                        id: floatVariableIdImported,
-                        collectionName: floatCollectionNameImported,
-                        collectionId: floatCollectionIdImported,
-                        location: 'Local',
-                        searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
-                      })
-
+                      if (typeof floatValueLinkedVariableValueImported === 'object' && floatValueImported !== null) {
+                        let floatValueDoubleLinkedImported = floatValueLinkedVariableValueImported as { id: string };
+                        if ('id' in floatValueDoubleLinkedImported) {
+                          let floatValueDoubleLinkedVariableImported = figma.variables.getVariableById(floatValueDoubleLinkedImported.id);
+                          let floatValueDoubleLinkedVariableValueImported = floatValueDoubleLinkedVariableImported?.valuesByMode[Object.keys(floatValueDoubleLinkedVariableImported.valuesByMode)[0]];
+        
+                          floatObjects.push({
+                            name: floatNameImported,
+                            value: floatValueDoubleLinkedVariableValueImported,
+                            id: floatVariableIdImported,
+                            collectionName: floatCollectionNameImported,
+                            collectionId: floatCollectionIdImported,
+                            location: 'Local',
+                            searchValue: floatNameImported + ' --> ' + floatValueDoubleLinkedVariableValueImported
+                          })
+                        }
+                      } else {
+                        floatObjects.push({
+                          name: floatNameImported,
+                          value: floatValueLinkedVariableValueImported,
+                          id: floatVariableIdImported,
+                          collectionName: floatCollectionNameImported,
+                          collectionId: floatCollectionIdImported,
+                          location: 'Local',
+                          searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
+                        })
+                      }
                     } 
                   } else {
                     floatObjects.push({
@@ -602,16 +791,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       let floatValueLinkedVariableImported = figma.variables.getVariableById(floatValueLinkedImported.id);
                       let floatValueLinkedVariableValueImported = floatValueLinkedVariableImported?.valuesByMode[Object.keys(floatValueLinkedVariableImported.valuesByMode)[0]];
                       
-                      floatObjects.push({
-                        name: floatNameImported,
-                        value: floatValueLinkedVariableValueImported,
-                        id: floatVariableIdImported,
-                        collectionName: floatCollectionNameImported,
-                        collectionId: floatCollectionIdImported,
-                        location: 'Local',
-                        searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
-                      })
-
+                      if (typeof floatValueLinkedVariableValueImported === 'object' && floatValueImported !== null) {
+                        let floatValueDoubleLinkedImported = floatValueLinkedVariableValueImported as { id: string };
+                        if ('id' in floatValueDoubleLinkedImported) {
+                          let floatValueDoubleLinkedVariableImported = figma.variables.getVariableById(floatValueDoubleLinkedImported.id);
+                          let floatValueDoubleLinkedVariableValueImported = floatValueDoubleLinkedVariableImported?.valuesByMode[Object.keys(floatValueDoubleLinkedVariableImported.valuesByMode)[0]];
+        
+                          floatObjects.push({
+                            name: floatNameImported,
+                            value: floatValueDoubleLinkedVariableValueImported,
+                            id: floatVariableIdImported,
+                            collectionName: floatCollectionNameImported,
+                            collectionId: floatCollectionIdImported,
+                            location: 'Local',
+                            searchValue: floatNameImported + ' --> ' + floatValueDoubleLinkedVariableValueImported
+                          })
+                        }
+                      } else {
+                        floatObjects.push({
+                          name: floatNameImported,
+                          value: floatValueLinkedVariableValueImported,
+                          id: floatVariableIdImported,
+                          collectionName: floatCollectionNameImported,
+                          collectionId: floatCollectionIdImported,
+                          location: 'Local',
+                          searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
+                        })
+                      }
                     } 
                   } else {
                     floatObjects.push({
@@ -635,16 +841,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       let floatValueLinkedVariableImported = figma.variables.getVariableById(floatValueLinkedImported.id);
                       let floatValueLinkedVariableValueImported = floatValueLinkedVariableImported?.valuesByMode[Object.keys(floatValueLinkedVariableImported.valuesByMode)[0]];
                       
-                      floatObjects.push({
-                        name: floatNameImported,
-                        value: floatValueLinkedVariableValueImported,
-                        id: floatVariableIdImported,
-                        collectionName: floatCollectionNameImported,
-                        collectionId: floatCollectionIdImported,
-                        location: 'Local',
-                        searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
-                      })
-
+                      if (typeof floatValueLinkedVariableValueImported === 'object' && floatValueImported !== null) {
+                        let floatValueDoubleLinkedImported = floatValueLinkedVariableValueImported as { id: string };
+                        if ('id' in floatValueDoubleLinkedImported) {
+                          let floatValueDoubleLinkedVariableImported = figma.variables.getVariableById(floatValueDoubleLinkedImported.id);
+                          let floatValueDoubleLinkedVariableValueImported = floatValueDoubleLinkedVariableImported?.valuesByMode[Object.keys(floatValueDoubleLinkedVariableImported.valuesByMode)[0]];
+        
+                          floatObjects.push({
+                            name: floatNameImported,
+                            value: floatValueDoubleLinkedVariableValueImported,
+                            id: floatVariableIdImported,
+                            collectionName: floatCollectionNameImported,
+                            collectionId: floatCollectionIdImported,
+                            location: 'Local',
+                            searchValue: floatNameImported + ' --> ' + floatValueDoubleLinkedVariableValueImported
+                          })
+                        }
+                      } else {
+                        floatObjects.push({
+                          name: floatNameImported,
+                          value: floatValueLinkedVariableValueImported,
+                          id: floatVariableIdImported,
+                          collectionName: floatCollectionNameImported,
+                          collectionId: floatCollectionIdImported,
+                          location: 'Local',
+                          searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
+                        })
+                      }
                     } 
                   } else {
                     floatObjects.push({
@@ -669,16 +892,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       let floatValueLinkedVariableImported = figma.variables.getVariableById(floatValueLinkedImported.id);
                       let floatValueLinkedVariableValueImported = floatValueLinkedVariableImported?.valuesByMode[Object.keys(floatValueLinkedVariableImported.valuesByMode)[0]];
                       
-                      floatObjects.push({
-                        name: floatNameImported,
-                        value: floatValueLinkedVariableValueImported,
-                        id: floatVariableIdImported,
-                        collectionName: floatCollectionNameImported,
-                        collectionId: floatCollectionIdImported,
-                        location: 'Local',
-                        searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
-                      })
-
+                      if (typeof floatValueLinkedVariableValueImported === 'object' && floatValueImported !== null) {
+                        let floatValueDoubleLinkedImported = floatValueLinkedVariableValueImported as { id: string };
+                        if ('id' in floatValueDoubleLinkedImported) {
+                          let floatValueDoubleLinkedVariableImported = figma.variables.getVariableById(floatValueDoubleLinkedImported.id);
+                          let floatValueDoubleLinkedVariableValueImported = floatValueDoubleLinkedVariableImported?.valuesByMode[Object.keys(floatValueDoubleLinkedVariableImported.valuesByMode)[0]];
+        
+                          floatObjects.push({
+                            name: floatNameImported,
+                            value: floatValueDoubleLinkedVariableValueImported,
+                            id: floatVariableIdImported,
+                            collectionName: floatCollectionNameImported,
+                            collectionId: floatCollectionIdImported,
+                            location: 'Local',
+                            searchValue: floatNameImported + ' --> ' + floatValueDoubleLinkedVariableValueImported
+                          })
+                        }
+                      } else {
+                        floatObjects.push({
+                          name: floatNameImported,
+                          value: floatValueLinkedVariableValueImported,
+                          id: floatVariableIdImported,
+                          collectionName: floatCollectionNameImported,
+                          collectionId: floatCollectionIdImported,
+                          location: 'Local',
+                          searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
+                        })
+                      }
                     } 
                   } else {
                     floatObjects.push({
@@ -707,16 +947,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                         let floatValueLinkedVariableImported = figma.variables.getVariableById(floatValueLinkedImported.id);
                         let floatValueLinkedVariableValueImported = floatValueLinkedVariableImported?.valuesByMode[Object.keys(floatValueLinkedVariableImported.valuesByMode)[0]];
                         
-                        floatObjects.push({
-                          name: floatNameImported,
-                          value: floatValueLinkedVariableValueImported,
-                          id: floatVariableIdImported,
-                          collectionName: floatCollectionNameImported,
-                          collectionId: floatCollectionIdImported,
-                          location: 'Local',
-                          searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
-                        })
-  
+                        if (typeof floatValueLinkedVariableValueImported === 'object' && floatValueImported !== null) {
+                          let floatValueDoubleLinkedImported = floatValueLinkedVariableValueImported as { id: string };
+                          if ('id' in floatValueDoubleLinkedImported) {
+                            let floatValueDoubleLinkedVariableImported = figma.variables.getVariableById(floatValueDoubleLinkedImported.id);
+                            let floatValueDoubleLinkedVariableValueImported = floatValueDoubleLinkedVariableImported?.valuesByMode[Object.keys(floatValueDoubleLinkedVariableImported.valuesByMode)[0]];
+          
+                            floatObjects.push({
+                              name: floatNameImported,
+                              value: floatValueDoubleLinkedVariableValueImported,
+                              id: floatVariableIdImported,
+                              collectionName: floatCollectionNameImported,
+                              collectionId: floatCollectionIdImported,
+                              location: 'Local',
+                              searchValue: floatNameImported + ' --> ' + floatValueDoubleLinkedVariableValueImported
+                            })
+                          }
+                        } else {
+                          floatObjects.push({
+                            name: floatNameImported,
+                            value: floatValueLinkedVariableValueImported,
+                            id: floatVariableIdImported,
+                            collectionName: floatCollectionNameImported,
+                            collectionId: floatCollectionIdImported,
+                            location: 'Local',
+                            searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
+                          })
+                        }
                       } 
                     } else {
                       floatObjects.push({
@@ -739,16 +996,33 @@ figma.parameters.on('input', ({query, result, key, parameters}) =>{
                       let floatValueLinkedVariableImported = figma.variables.getVariableById(floatValueLinkedImported.id);
                       let floatValueLinkedVariableValueImported = floatValueLinkedVariableImported?.valuesByMode[Object.keys(floatValueLinkedVariableImported.valuesByMode)[0]];
                       
-                      floatObjects.push({
-                        name: floatNameImported,
-                        value: floatValueLinkedVariableValueImported,
-                        id: floatVariableIdImported,
-                        collectionName: floatCollectionNameImported,
-                        collectionId: floatCollectionIdImported,
-                        location: 'Local',
-                        searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
-                      })
-
+                      if (typeof floatValueLinkedVariableValueImported === 'object' && floatValueImported !== null) {
+                        let floatValueDoubleLinkedImported = floatValueLinkedVariableValueImported as { id: string };
+                        if ('id' in floatValueDoubleLinkedImported) {
+                          let floatValueDoubleLinkedVariableImported = figma.variables.getVariableById(floatValueDoubleLinkedImported.id);
+                          let floatValueDoubleLinkedVariableValueImported = floatValueDoubleLinkedVariableImported?.valuesByMode[Object.keys(floatValueDoubleLinkedVariableImported.valuesByMode)[0]];
+        
+                          floatObjects.push({
+                            name: floatNameImported,
+                            value: floatValueDoubleLinkedVariableValueImported,
+                            id: floatVariableIdImported,
+                            collectionName: floatCollectionNameImported,
+                            collectionId: floatCollectionIdImported,
+                            location: 'Local',
+                            searchValue: floatNameImported + ' --> ' + floatValueDoubleLinkedVariableValueImported
+                          })
+                        }
+                      } else {
+                        floatObjects.push({
+                          name: floatNameImported,
+                          value: floatValueLinkedVariableValueImported,
+                          id: floatVariableIdImported,
+                          collectionName: floatCollectionNameImported,
+                          collectionId: floatCollectionIdImported,
+                          location: 'Local',
+                          searchValue: floatNameImported + ' --> ' + floatValueLinkedVariableValueImported
+                        })
+                      }
                     } 
                   } else {
                     floatObjects.push({
